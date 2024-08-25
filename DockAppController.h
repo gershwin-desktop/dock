@@ -20,6 +20,11 @@
 - (void)iconClicked:(id)sender;
 - (void)dockIcon:(NSString *)appName;
 - (void)undockIcon:(NSString *)appName;
+- (BOOL)isAppDocked:(NSString *)appName;
+- (void)applicationIsLaunching:(NSNotification *)notification;
+- (void)applicationDidFinishLaunching:(NSNotification *)notification;
+- (void)applicationTerminated:(NSNotification *)notification;
+- (void)checkForNewActivatedIcons;
 
 
 @end
