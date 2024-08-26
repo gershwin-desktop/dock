@@ -145,17 +145,14 @@
 }
 
 - (void)iconClicked:(DockIcon *)sender{
-    //NSButton *clickedButton = (NSButton *)sender;
-    //NSString *appName = [clickedButton title];
     DockIcon *dockIcon = (DockIcon *)sender;
     NSString *appName = [dockIcon getAppName];
-    NSLog(@"CLICKED!");
     
     if ([appName isEqualToString:@"Trash"]) {
-      // NSLog(@"Launching application: %@", appName);
+      // TODO Pull up Trash UI
     } else if ([appName isEqualToString:@"Dock"]) {
+      // IGNORE this app if it comes up in the list
     } else {
-      NSLog(@"CLICKED!");
       [self.workspace launchApplication:appName];
     }
 }
@@ -179,15 +176,14 @@
 
 - (void) checkForNewActivatedIcons {
   // Update Dock Icons Arrays
-  NSLog(@"Updating Dock Icon States...");
+  NSLog(@"Looking up launchedApplications...");
   // Get the list of running applications
-  NSArray *runningApps = [self.workspace runningApplications];
-  // FIXME: Not sure how to parse this. Each Array item contains a dictionary but I don't know how to deal with those yet 
-  for (NSDictionary *appDictionary in runningApps) {
-      NSString *runningAppName = [appDictionary objectForKey:@"NSApplicationName"];
-      NSLog(@"%@", runningAppName);
+  NSArray *runningApps = [self.workspace launchedApplications];
+  for (int i = 0; i < [runningApps count]; i++) {
+      NSString *runningAppName = [[runningApps objectAtIndex: i] objectForKey: @"NSApplicationName"];
       DockIcon *dockedIcon = [_dockedIcons objectForKey:runningAppName];
       [dockedIcon setActiveLightVisibility:YES];
+      NSLog(@"Running App: %@", runningAppName);
   }
 }
 
@@ -199,6 +195,8 @@
 
       DockIcon *dockedIcon = [_dockedIcons objectForKey:appName];
       [dockedIcon setActiveLightVisibility:NO];
+      
+      //TODO  Manage the undocked list here
       //[self checkForNewActivatedIcons];
 
     } else {
@@ -213,6 +211,8 @@
       NSLog(@"%@ is active", appName);
       DockIcon *dockedIcon = [_dockedIcons objectForKey:appName];
       [dockedIcon setActiveLightVisibility:YES];
+
+      //TODO  Manage the undocked list here
       //[self checkForNewActivatedIcons];
     } else {
       NSLog(@"Active application changed, but could not retrieve name.");
@@ -220,4 +220,3 @@
 }
 
 @end
-
