@@ -24,5 +24,8 @@
 - (void)setAppName:(NSString *)name;
 
 - (void)setActiveLightVisibility:(BOOL)isVisible;
+
+- (void)selfDestruct;
+
 @end
 

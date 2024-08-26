@@ -81,7 +81,7 @@
     [self addApplicationIcon:@"Terminal" withDockedStatus:YES];
     [self addApplicationIcon:@"SystemPreferences" withDockedStatus:YES];
     //[self addApplicationIcon:@"Ycode" withDockedStatus:YES];
-    [self addApplicationIcon:@"Chess" withDockedStatus:YES];
+    //[self addApplicationIcon:@"Chess" withDockedStatus:YES];
     
     // Set all the active lights for running apps
     [self checkForNewActivatedIcons];
@@ -108,11 +108,33 @@
 }
 
 - (void)addDivider {}
-- (void)dockIcon:(NSString *)appName {}
-- (void)undockIcon:(NSString *)appName {}
+- (void)dockIcon:(NSString *)appName {} // Remove
+- (void)undockIcon:(NSString *)appName {} // Remove
+
 - (BOOL)isAppDocked:(NSString *)appName {
     BOOL defaultValue = NO;
-    return defaultValue;
+    DockIcon *dockedApp = [self.dockedIcons objectForKey:appName];
+    return dockedApp ? YES : defaultValue;
+}
+
+- (void) checkForNewActivatedIcons {
+  // Update Dock Icons Arrays
+  NSLog(@"Looking up launchedApplications...");
+  // Get the list of running applications
+  NSArray *runningApps = [self.workspace launchedApplications];
+  for (int i = 0; i < [runningApps count]; i++) {
+      NSString *runningAppName = [[runningApps objectAtIndex: i] objectForKey: @"NSApplicationName"];
+      DockIcon *dockedIcon = [_dockedIcons objectForKey:runningAppName];
+
+      if (dockedIcon) {
+        [dockedIcon setActiveLightVisibility:YES];
+      } else {
+        DockIcon *undockedIcon = [_undockedIcons objectForKey:runningAppName];
+        [undockedIcon setActiveLightVisibility:YES];
+      }
+
+      NSLog(@"Running App: %@", runningAppName);
+  }
 }
 
 - (NSRect)generateLocation:(NSString *)dockPosition  {
@@ -130,8 +152,7 @@
 }
 
 - (DockIcon *)generateIcon:(NSString *)appName  {
-    NSRect location = [self generateLocation:@"Bottom"]; 
-    //NSButton *appButton = [[NSButton alloc] initWithFrame:location];
+    NSRect location = [self generateLocation:@"Bottom"];  
     DockIcon *appButton = [[DockIcon alloc] initWithFrame:location];
     NSImage *iconImage = [self.workspace appIconForApp:appName]; 
 
@@ -152,6 +173,8 @@
       // TODO Pull up Trash UI
     } else if ([appName isEqualToString:@"Dock"]) {
       // IGNORE this app if it comes up in the list
+      DockIcon *undockedIcon = [_undockedIcons objectForKey:appName];
+      [_undockedIcons removeObjectForKey:appName];
     } else {
       [self.workspace launchApplication:appName];
     }
@@ -161,7 +184,21 @@
     NSDictionary *userInfo = [notification userInfo];
     NSString *appName = userInfo[@"NSApplicationName"];
     if (appName) {
+      if ([appName isEqualToString:@"Dock"]) {
+          return;
+      }
+
       NSLog(@"%@ launched", appName);
+      //TODO  Manage the undocked list here
+      BOOL isDocked = [self isAppDocked:appName];
+      if (isDocked) {
+        DockIcon *dockedIcon = [_dockedIcons objectForKey:appName];
+        [dockedIcon setActiveLightVisibility:YES];
+        // [self checkForNewActivatedIcons];
+      } else {
+        // Add to undocked list
+        [self addApplicationIcon:appName withDockedStatus:NO];        
+      }
     } else {
       NSLog(@"Application launched, but could not retrieve name.");
     }
@@ -174,30 +211,23 @@
   NSLog(@"Get ready to bounce");
 }
 
-- (void) checkForNewActivatedIcons {
-  // Update Dock Icons Arrays
-  NSLog(@"Looking up launchedApplications...");
-  // Get the list of running applications
-  NSArray *runningApps = [self.workspace launchedApplications];
-  for (int i = 0; i < [runningApps count]; i++) {
-      NSString *runningAppName = [[runningApps objectAtIndex: i] objectForKey: @"NSApplicationName"];
-      DockIcon *dockedIcon = [_dockedIcons objectForKey:runningAppName];
-      [dockedIcon setActiveLightVisibility:YES];
-      NSLog(@"Running App: %@", runningAppName);
-  }
-}
-
 - (void)applicationTerminated:(NSNotification *)notification {
     NSDictionary *userInfo = [notification userInfo];
     NSString *appName = userInfo[@"NSApplicationName"];
     if (appName) {
       NSLog(@"%@ terminated", appName);
-
-      DockIcon *dockedIcon = [_dockedIcons objectForKey:appName];
-      [dockedIcon setActiveLightVisibility:NO];
-      
       //TODO  Manage the undocked list here
-      //[self checkForNewActivatedIcons];
+      BOOL isDocked = [self isAppDocked:appName];
+      if (isDocked) {
+        DockIcon *dockedIcon = [_dockedIcons objectForKey:appName];
+        [dockedIcon setActiveLightVisibility:NO];
+        // [self checkForNewActivatedIcons];
+      } else {
+        // Remove from undocked list
+        DockIcon *undockedIcon = [_undockedIcons objectForKey:appName];
+        [_undockedIcons removeObjectForKey:appName];
+        [undockedIcon selfDestruct];
+      }
 
     } else {
       NSLog(@"Application terminated, but could not retrieve name.");
@@ -209,8 +239,8 @@
     NSString *appName = userInfo[@"NSApplicationName"];
     if (appName) {
       NSLog(@"%@ is active", appName);
-      DockIcon *dockedIcon = [_dockedIcons objectForKey:appName];
-      [dockedIcon setActiveLightVisibility:YES];
+      //DockIcon *dockedIcon = [_dockedIcons objectForKey:appName];
+      //[dockedIcon setActiveLightVisibility:YES];
 
       //TODO  Manage the undocked list here
       //[self checkForNewActivatedIcons];

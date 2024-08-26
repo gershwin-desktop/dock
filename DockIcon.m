@@ -62,5 +62,9 @@
     [super setToolTip:_appName];
 }
 
+- (void)selfDestruct {
+    [self removeFromSuperview];
+}
+
 @end
 
