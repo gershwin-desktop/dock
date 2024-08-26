@@ -5,8 +5,8 @@
 @interface DockAppController : NSObject <NSApplicationDelegate>
 
 @property (strong) NSWindow *dockWindow;
-@property (strong) NSMutableArray *dockedIcons;
-@property (strong) NSMutableArray *undockedIcons;
+@property (strong) NSMutableDictionary *dockedIcons;
+@property (strong) NSMutableDictionary *undockedIcons;
 @property (strong) NSWorkspace *workspace;
 @property CGFloat iconSize;
 @property CGFloat activeLight;
@@ -14,7 +14,7 @@
 
 - (void)setupDockWindow;
 - (void)addApplicationIcon:(NSString *)appName withDockedStatus:(BOOL)isDocked;
-- (NSButton *)generateIcon:(NSString *)appName;
+- (DockIcon *)generateIcon:(NSString *)appName;
 - (NSRect)generateLocation:(NSString *)dockPosition;
 - (void)addDivider;
 - (void)iconClicked:(id)sender;
@@ -24,6 +24,7 @@
 - (void)applicationIsLaunching:(NSNotification *)notification;
 - (void)applicationDidFinishLaunching:(NSNotification *)notification;
 - (void)applicationTerminated:(NSNotification *)notification;
+- (void)activeApplicationChanged:(NSNotification *)notification;
 - (void)checkForNewActivatedIcons;
 
 

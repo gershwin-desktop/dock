@@ -7,8 +7,8 @@
 - (instancetype)init {
     self = [super init];
     if (self) {
-        _dockedIcons = [[NSMutableArray alloc] init];
-        _undockedIcons = [[NSMutableArray alloc] init];
+        _dockedIcons = [[NSMutableDictionary alloc] init];
+        _undockedIcons = [[NSMutableDictionary alloc] init];
         _workspace = [NSWorkspace sharedWorkspace];  // Initialize the workspace property with the shared instance
         _iconSize = 64;
         _activeLight = 10;
@@ -19,19 +19,25 @@
         // Subscribe to the NSWorkspaceWillLaunchApplicationNotification
         [workspaceNotificationCenter addObserver:self
                                               selector:@selector(applicationIsLaunching:)
-                                              name:NSWorkspaceWillLaunchApplicationNotification //NSWorkspaceDidLaunchApplicationNotification
+                                              name:NSWorkspaceWillLaunchApplicationNotification 
                                               object:nil];
 
         // Subscribe to the NSWorkspaceDidLaunchApplicationNotification
         [workspaceNotificationCenter addObserver:self
                                               selector:@selector(applicationDidFinishLaunching:)
-                                              name:NSWorkspaceDidLaunchApplicationNotification //NSWorkspaceDidLaunchApplicationNotification
+                                              name:NSWorkspaceDidLaunchApplicationNotification 
                                               object:nil];
 
-        // Subscribe to NSWorkspaceDidActivateApplicationNotification: Sent when an application becomes active.
+        // Subscribe to NSWorkspaceDidActivateApplicationNotification: Sent when an application is terminated.
         [workspaceNotificationCenter addObserver:self
                                               selector:@selector(applicationTerminated:)
                                               name:NSWorkspaceDidTerminateApplicationNotification
+                                              object:nil];
+
+        // Subscribe to NSApplicationDidBecomeActiveNotification: Sent when an application becomes active.
+        [workspaceNotificationCenter addObserver:self
+                                              selector:@selector(activeApplicationChanged:)
+                                              name:NSApplicationDidBecomeActiveNotification // is NSWorkspaceDidActivateApplicationNotification on MacOS
                                               object:nil];
 
         [self setupDockWindow];
@@ -47,14 +53,14 @@
 - (void)setupDockWindow {
 
     // TODO: Calculate based on state. Will hard code for now
-    CGFloat totalIcons = 5;
+    CGFloat totalIcons = 12;
     // Create a dock window without a title bar or standard window buttons 
     CGFloat dockWidth = (self.padding * 2 + totalIcons * self.iconSize);
     // Get the main screen (primary display)
     NSScreen *mainScreen = [NSScreen mainScreen];
     NSRect viewport = [mainScreen frame];
     CGFloat x = (viewport.size.width / 2) - (dockWidth / 2);
-    NSRect frame = NSMakeRect(x, 0, dockWidth, 8 + self.activeLight + self.iconSize);  // Set size and position of the dock (x, y, w, h)
+    NSRect frame = NSMakeRect(x, 16, dockWidth, 8 + self.activeLight + self.iconSize);  // Set size and position of the dock (x, y, w, h)
     self.dockWindow = [[NSWindow alloc] initWithContentRect:frame
                                                   styleMask:NSWindowStyleMaskBorderless
                                                     backing:NSBackingStoreBuffered
@@ -62,7 +68,10 @@
     [self.dockWindow setTitle:@"Dock"];
     [self.dockWindow setLevel:NSFloatingWindowLevel];
     [self.dockWindow setOpaque:NO];
-    [self.dockWindow setBackgroundColor:[NSColor clearColor]];
+ 
+    // Set the window's background color with transparency (alpha < 1.0)
+    NSColor *semiTransparentColor = [NSColor colorWithCalibratedWhite:0.1 alpha:0.75];
+    [self.dockWindow setBackgroundColor:semiTransparentColor];
     
     // Set the dock window content view
     NSView *contentView = [self.dockWindow contentView];
@@ -71,9 +80,12 @@
     [self addApplicationIcon:@"GWorkspace" withDockedStatus:YES];
     [self addApplicationIcon:@"Terminal" withDockedStatus:YES];
     [self addApplicationIcon:@"SystemPreferences" withDockedStatus:YES];
-    [self addApplicationIcon:@"Ycode" withDockedStatus:YES];
+    //[self addApplicationIcon:@"Ycode" withDockedStatus:YES];
     [self addApplicationIcon:@"Chess" withDockedStatus:YES];
     
+    // Set all the active lights for running apps
+    [self checkForNewActivatedIcons];
+
     // TODO: Fetch Docked Apps from Prefs
 
     // TODO: Create Divider
@@ -85,12 +97,13 @@
 }
 
 - (void)addApplicationIcon:(NSString *)appName withDockedStatus:(BOOL)isDocked {
-    NSButton *appButton = [self generateIcon:appName];
+    //NSButton *appButton = [self generateIcon:appName];
+    DockIcon *appButton = [self generateIcon:appName];
     [[self.dockWindow contentView] addSubview:appButton];
     if(isDocked) {
-      [self.dockedIcons addObject:appButton];
+      [self.dockedIcons setObject:appButton forKey:appName];
     } else {
-      [self.undockedIcons addObject:appButton];
+      [self.undockedIcons setObject:appButton forKey:appName];
     }
 }
 
@@ -104,7 +117,11 @@
 
 - (NSRect)generateLocation:(NSString *)dockPosition  {
     if([dockPosition isEqualToString:@"Left"]) {
+      NSRect leftLocation = NSMakeRect(self.activeLight, [self.dockedIcons count] * self.iconSize + (self.padding), self.iconSize, self.iconSize);
+      return leftLocation;
     } else if([dockPosition isEqualToString:@"Right"]) {
+      NSRect rightLocation = NSMakeRect(self.activeLight, [self.dockedIcons count] * self.iconSize + (self.padding), self.iconSize, self.iconSize);
+      return rightLocation;
     } else {
       // If unset we default to "Bottom"
       NSRect bottomLocation = NSMakeRect([self.dockedIcons count] * self.iconSize + (self.padding), self.activeLight, self.iconSize, self.iconSize);
@@ -112,28 +129,33 @@
     }
 }
 
-- (NSButton *)generateIcon:(NSString *)appName  {
+- (DockIcon *)generateIcon:(NSString *)appName  {
     NSRect location = [self generateLocation:@"Bottom"]; 
-    NSButton *appButton = [[NSButton alloc] initWithFrame:location];
+    //NSButton *appButton = [[NSButton alloc] initWithFrame:location];
+    DockIcon *appButton = [[DockIcon alloc] initWithFrame:location];
     NSImage *iconImage = [self.workspace appIconForApp:appName]; 
 
     [appButton setImage:iconImage];
-    [appButton setTitle:appName];
+    [appButton setAppName:appName];
     [appButton setBordered:NO];
     [appButton setAction:@selector(iconClicked:)];
-    [appButton setTarget:self];
+    [appButton setTarget:self]; 
 
     return appButton;
 }
 
-- (void)iconClicked:(id)sender {
-    NSButton *clickedButton = (NSButton *)sender;
-    NSString *appName = [clickedButton title];
+- (void)iconClicked:(DockIcon *)sender{
+    //NSButton *clickedButton = (NSButton *)sender;
+    //NSString *appName = [clickedButton title];
+    DockIcon *dockIcon = (DockIcon *)sender;
+    NSString *appName = [dockIcon getAppName];
+    NSLog(@"CLICKED!");
     
     if ([appName isEqualToString:@"Trash"]) {
       // NSLog(@"Launching application: %@", appName);
     } else if ([appName isEqualToString:@"Dock"]) {
     } else {
+      NSLog(@"CLICKED!");
       [self.workspace launchApplication:appName];
     }
 }
@@ -142,7 +164,7 @@
     NSDictionary *userInfo = [notification userInfo];
     NSString *appName = userInfo[@"NSApplicationName"];
     if (appName) {
-      NSLog(@"Application launched: %@", appName);
+      NSLog(@"%@ launched", appName);
     } else {
       NSLog(@"Application launched, but could not retrieve name.");
     }
@@ -161,16 +183,39 @@
   // Get the list of running applications
   NSArray *runningApps = [self.workspace runningApplications];
   // FIXME: Not sure how to parse this. Each Array item contains a dictionary but I don't know how to deal with those yet 
+  for (NSDictionary *appDictionary in runningApps) {
+      NSString *runningAppName = [appDictionary objectForKey:@"NSApplicationName"];
+      NSLog(@"%@", runningAppName);
+      DockIcon *dockedIcon = [_dockedIcons objectForKey:runningAppName];
+      [dockedIcon setActiveLightVisibility:YES];
+  }
 }
 
 - (void)applicationTerminated:(NSNotification *)notification {
     NSDictionary *userInfo = [notification userInfo];
     NSString *appName = userInfo[@"NSApplicationName"];
     if (appName) {
-      NSLog(@"Application terminated: %@", appName);
-      [self checkForNewActivatedIcons];
+      NSLog(@"%@ terminated", appName);
+
+      DockIcon *dockedIcon = [_dockedIcons objectForKey:appName];
+      [dockedIcon setActiveLightVisibility:NO];
+      //[self checkForNewActivatedIcons];
+
     } else {
       NSLog(@"Application terminated, but could not retrieve name.");
+    }
+}
+
+- (void)activeApplicationChanged:(NSNotification *)notification {
+    NSDictionary *userInfo = [notification userInfo];
+    NSString *appName = userInfo[@"NSApplicationName"];
+    if (appName) {
+      NSLog(@"%@ is active", appName);
+      DockIcon *dockedIcon = [_dockedIcons objectForKey:appName];
+      [dockedIcon setActiveLightVisibility:YES];
+      //[self checkForNewActivatedIcons];
+    } else {
+      NSLog(@"Active application changed, but could not retrieve name.");
     }
 }
 
