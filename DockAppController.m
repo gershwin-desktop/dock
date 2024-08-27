@@ -115,6 +115,7 @@
 }
 
 - (void)updateDockWindow {
+    NSLog(@"Updating dock window...");
     // Adjust the width
     CGFloat dockWidth = [self calculateDockWidth];
     NSSize currentContentSize = [self.dockWindow.contentView frame].size;
@@ -122,11 +123,13 @@
     [self.dockWindow setContentSize:newContentSize];
 
     // Center on screen
+    /*
     NSScreen *mainScreen = [NSScreen mainScreen];
     NSRect viewport = [mainScreen frame];
     CGFloat newX = (viewport.size.width / 2) - (dockWidth / 2);
     NSRect currentFrame = [self.dockWindow.contentView frame];
     NSRect newFrame = NSMakeRect(newX, currentFrame.origin.y, currentFrame.size.width, currentFrame.size.height);
+    */
 }
 
 - (void)addApplicationIcon:(NSString *)appName withDockedStatus:(BOOL)isDocked {
@@ -212,7 +215,7 @@
     }
 }
 
-- (void)applicationIsLaunching:(NSNotification *)notification {
+- (void)applicationDidFinishLaunching:(NSNotification *)notification {
     NSDictionary *userInfo = [notification userInfo];
     NSString *appName = userInfo[@"NSApplicationName"];
     if (appName) {
@@ -241,7 +244,7 @@
     [self checkForNewActivatedIcons];
 }
 
-- (void)applicationDidFinishLaunching:(NSNotification *)notification {
+- (void)applicationIsLaunching:(NSNotification *)notification {
     // TODO: STOP BOUNCE
     NSLog(@"Stop the bounce");
 }
