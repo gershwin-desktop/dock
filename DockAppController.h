@@ -14,8 +14,8 @@
 
 - (void)setupDockWindow;
 - (void)addApplicationIcon:(NSString *)appName withDockedStatus:(BOOL)isDocked;
-- (DockIcon *)generateIcon:(NSString *)appName;
-- (NSRect)generateLocation:(NSString *)dockPosition;
+- (DockIcon *)generateIcon:(NSString *)appName withDockedStatus:(BOOL)isDocked;
+- (NSRect)generateLocation:(NSString *)dockPosition forDockedStatus:(BOOL)isDocked;
 - (void)addDivider;
 - (void)iconClicked:(id)sender;
 - (void)dockIcon:(NSString *)appName;

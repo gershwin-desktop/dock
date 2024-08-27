@@ -51,9 +51,6 @@
 }
 
 - (void)setupDockWindow {
-
-    // TODO: Calculate based on state. Will hard code for now
-    // CGFloat totalIcons = 12;
     // Create a dock window without a title bar or standard window buttons 
     CGFloat dockWidth = [self calculateDockWidth];// (self.padding * 2 + totalIcons * self.iconSize);
     // Get the main screen (primary display)
@@ -85,7 +82,7 @@
 
     // TODO: Create Divider
 
-    // TODO: Fetch Running Apps from Workspace
+    // Fetch Running Apps from Workspace
     NSArray *runningApps = [self.workspace launchedApplications];
     for (int i = 0; i < [runningApps count]; i++) {
         NSString *runningAppName = [[runningApps objectAtIndex: i] objectForKey: @"NSApplicationName"];
@@ -128,17 +125,8 @@
     CGFloat newX = (viewport.size.width / 2) - (dockWidth / 2);
     NSRect currentFrame = [self.dockWindow.contentView frame];
     NSRect newFrame = NSMakeRect(newX, currentFrame.origin.y, currentFrame.size.width, currentFrame.size.height);
+    [self.dockWindow setFrame:newFrame display:YES];
    
-}
-
-- (void)addApplicationIcon:(NSString *)appName withDockedStatus:(BOOL)isDocked {
-    DockIcon *appButton = [self generateIcon:appName];
-    [[self.dockWindow contentView] addSubview:appButton];
-    if(isDocked) {
-      [self.dockedIcons setObject:appButton forKey:appName];
-    } else {
-      [self.undockedIcons setObject:appButton forKey:appName];
-    }
 }
 
 - (void)addDivider {}
@@ -158,6 +146,9 @@
   NSArray *runningApps = [self.workspace launchedApplications];
   for (int i = 0; i < [runningApps count]; i++) {
       NSString *runningAppName = [[runningApps objectAtIndex: i] objectForKey: @"NSApplicationName"];
+      if ([runningAppName isEqualToString:@"Dock"]) {
+        continue;
+      }
       DockIcon *dockedIcon = [_dockedIcons objectForKey:runningAppName];
 
       if (dockedIcon) {
@@ -171,7 +162,18 @@
   }
 }
 
-- (NSRect)generateLocation:(NSString *)dockPosition  {
+- (void)addApplicationIcon:(NSString *)appName withDockedStatus:(BOOL)isDocked {
+    DockIcon *appButton = [self generateIcon:appName withDockedStatus:isDocked];
+    [[self.dockWindow contentView] addSubview:appButton];
+    if(isDocked) {
+      [self.dockedIcons setObject:appButton forKey:appName];
+    } else {
+      [self.undockedIcons setObject:appButton forKey:appName];
+    }
+}
+
+- (NSRect)generateLocation:(NSString *)dockPosition forDockedStatus:(BOOL)isDocked {
+      CGFloat iconCount = isDocked ? [self.dockedIcons count] : [self.dockedIcons count] + [self.undockedIcons count];
     if([dockPosition isEqualToString:@"Left"]) {
       NSRect leftLocation = NSMakeRect(self.activeLight, [self.dockedIcons count] * self.iconSize + (self.padding), self.iconSize, self.iconSize);
       return leftLocation;
@@ -180,13 +182,13 @@
       return rightLocation;
     } else {
       // If unset we default to "Bottom"
-      NSRect bottomLocation = NSMakeRect([self.dockedIcons count] * self.iconSize + (self.padding), self.activeLight, self.iconSize, self.iconSize);
+      NSRect bottomLocation = NSMakeRect(iconCount * self.iconSize + (self.padding), self.activeLight, self.iconSize, self.iconSize);
       return bottomLocation;
     }
 }
 
-- (DockIcon *)generateIcon:(NSString *)appName  {
-    NSRect location = [self generateLocation:@"Bottom"];  
+- (DockIcon *)generateIcon:(NSString *)appName withDockedStatus:(BOOL)isDocked {
+    NSRect location = [self generateLocation:@"Bottom" forDockedStatus:isDocked];  
     DockIcon *appButton = [[DockIcon alloc] initWithFrame:location];
     NSImage *iconImage = [self.workspace appIconForApp:appName]; 
 
@@ -227,8 +229,7 @@
       BOOL isDocked = [self isAppDocked:appName];
       if (isDocked) {
         DockIcon *dockedIcon = [_dockedIcons objectForKey:appName];
-        [dockedIcon setActiveLightVisibility:YES];
-        // [self checkForNewActivatedIcons];
+        [dockedIcon setActiveLightVisibility:YES]; 
       } else {
         // Add to undocked list
         [self addApplicationIcon:appName withDockedStatus:NO];        
