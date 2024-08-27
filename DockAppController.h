@@ -26,6 +26,8 @@
 - (void)applicationTerminated:(NSNotification *)notification;
 - (void)activeApplicationChanged:(NSNotification *)notification;
 - (void)checkForNewActivatedIcons;
+- (CGFloat)calculateDockWidth;
+- (void)updateDockWindow;
 
 
 @end

@@ -53,9 +53,9 @@
 - (void)setupDockWindow {
 
     // TODO: Calculate based on state. Will hard code for now
-    CGFloat totalIcons = 12;
+    // CGFloat totalIcons = 12;
     // Create a dock window without a title bar or standard window buttons 
-    CGFloat dockWidth = (self.padding * 2 + totalIcons * self.iconSize);
+    CGFloat dockWidth = [self calculateDockWidth];// (self.padding * 2 + totalIcons * self.iconSize);
     // Get the main screen (primary display)
     NSScreen *mainScreen = [NSScreen mainScreen];
     NSRect viewport = [mainScreen frame];
@@ -76,28 +76,60 @@
     // Set the dock window content view
     NSView *contentView = [self.dockWindow contentView];
     
+    // TODO: Fetch Docked Apps from Prefs
+    
     // Add default applications icons to the dock window
     [self addApplicationIcon:@"GWorkspace" withDockedStatus:YES];
     [self addApplicationIcon:@"Terminal" withDockedStatus:YES];
     [self addApplicationIcon:@"SystemPreferences" withDockedStatus:YES];
-    //[self addApplicationIcon:@"Ycode" withDockedStatus:YES];
-    //[self addApplicationIcon:@"Chess" withDockedStatus:YES];
-    
-    // Set all the active lights for running apps
-    [self checkForNewActivatedIcons];
-
-    // TODO: Fetch Docked Apps from Prefs
 
     // TODO: Create Divider
 
     // TODO: Fetch Running Apps from Workspace
+    NSArray *runningApps = [self.workspace launchedApplications];
+    for (int i = 0; i < [runningApps count]; i++) {
+        NSString *runningAppName = [[runningApps objectAtIndex: i] objectForKey: @"NSApplicationName"];
+        DockIcon *dockedIcon = [_dockedIcons objectForKey:runningAppName];
+        DockIcon *undockedIcon = [_undockedIcons objectForKey:runningAppName];
+  
+        if (!dockedIcon && !undockedIcon) {
+          [self addApplicationIcon:runningAppName withDockedStatus:NO];
+        }
+  
+        NSLog(@"Running App: %@", runningAppName);
+    }
     
+    
+    // Set all the active lights for running apps
+    [self checkForNewActivatedIcons];
+
+    //Resize Dock Window
+    [self updateDockWindow];
     
     [self.dockWindow makeKeyAndOrderFront:nil];
 }
 
+- (CGFloat)calculateDockWidth {
+    CGFloat dockWidth = (self.padding * 2 + ([_dockedIcons count] + [_undockedIcons count]) * self.iconSize);
+    return dockWidth;
+}
+
+- (void)updateDockWindow {
+    // Adjust the width
+    CGFloat dockWidth = [self calculateDockWidth];
+    NSSize currentContentSize = [self.dockWindow.contentView frame].size;
+    NSSize newContentSize = NSMakeSize(dockWidth, currentContentSize.height); // width, height
+    [self.dockWindow setContentSize:newContentSize];
+
+    // Center on screen
+    NSScreen *mainScreen = [NSScreen mainScreen];
+    NSRect viewport = [mainScreen frame];
+    CGFloat newX = (viewport.size.width / 2) - (dockWidth / 2);
+    NSRect currentFrame = [self.dockWindow.contentView frame];
+    NSRect newFrame = NSMakeRect(newX, currentFrame.origin.y, currentFrame.size.width, currentFrame.size.height);
+}
+
 - (void)addApplicationIcon:(NSString *)appName withDockedStatus:(BOOL)isDocked {
-    //NSButton *appButton = [self generateIcon:appName];
     DockIcon *appButton = [self generateIcon:appName];
     [[self.dockWindow contentView] addSubview:appButton];
     if(isDocked) {
@@ -180,7 +212,7 @@
     }
 }
 
-- (void)applicationDidFinishLaunching:(NSNotification *)notification {
+- (void)applicationIsLaunching:(NSNotification *)notification {
     NSDictionary *userInfo = [notification userInfo];
     NSString *appName = userInfo[@"NSApplicationName"];
     if (appName) {
@@ -199,16 +231,19 @@
         // Add to undocked list
         [self addApplicationIcon:appName withDockedStatus:NO];        
       }
+      [self updateDockWindow];
     } else {
       NSLog(@"Application launched, but could not retrieve name.");
     }
 
+    // TODO: ICON BOUNCE
+    NSLog(@"Get ready to bounce");
     [self checkForNewActivatedIcons];
 }
 
-- (void)applicationIsLaunching:(NSNotification *)notification {
-  // TODO: ICON BOUNCE
-  NSLog(@"Get ready to bounce");
+- (void)applicationDidFinishLaunching:(NSNotification *)notification {
+    // TODO: STOP BOUNCE
+    NSLog(@"Stop the bounce");
 }
 
 - (void)applicationTerminated:(NSNotification *)notification {
@@ -228,6 +263,7 @@
         [_undockedIcons removeObjectForKey:appName];
         [undockedIcon selfDestruct];
       }
+      [self updateDockWindow];
 
     } else {
       NSLog(@"Application terminated, but could not retrieve name.");
@@ -239,11 +275,6 @@
     NSString *appName = userInfo[@"NSApplicationName"];
     if (appName) {
       NSLog(@"%@ is active", appName);
-      //DockIcon *dockedIcon = [_dockedIcons objectForKey:appName];
-      //[dockedIcon setActiveLightVisibility:YES];
-
-      //TODO  Manage the undocked list here
-      //[self checkForNewActivatedIcons];
     } else {
       NSLog(@"Active application changed, but could not retrieve name.");
     }
