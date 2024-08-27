@@ -122,14 +122,13 @@
     NSSize newContentSize = NSMakeSize(dockWidth, currentContentSize.height); // width, height
     [self.dockWindow setContentSize:newContentSize];
 
-    // Center on screen
-    /*
+    // Center on screen  
     NSScreen *mainScreen = [NSScreen mainScreen];
     NSRect viewport = [mainScreen frame];
     CGFloat newX = (viewport.size.width / 2) - (dockWidth / 2);
     NSRect currentFrame = [self.dockWindow.contentView frame];
     NSRect newFrame = NSMakeRect(newX, currentFrame.origin.y, currentFrame.size.width, currentFrame.size.height);
-    */
+   
 }
 
 - (void)addApplicationIcon:(NSString *)appName withDockedStatus:(BOOL)isDocked {
