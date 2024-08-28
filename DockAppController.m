@@ -76,7 +76,7 @@
     // TODO: Fetch Docked Apps from Prefs
     
     // Add default applications icons to the dock window
-    [self addApplicationIcon:@"GWorkspace" withDockedStatus:YES];
+    [self addApplicationIcon:@"Workspace" withDockedStatus:YES];
     [self addApplicationIcon:@"Terminal" withDockedStatus:YES];
     [self addApplicationIcon:@"SystemPreferences" withDockedStatus:YES];
 
@@ -124,7 +124,7 @@
     NSRect viewport = [mainScreen frame];
     CGFloat newX = (viewport.size.width / 2) - (dockWidth / 2);
     NSRect currentFrame = [self.dockWindow.contentView frame];
-    NSRect newFrame = NSMakeRect(newX, currentFrame.origin.y, currentFrame.size.width, currentFrame.size.height);
+    NSRect newFrame = NSMakeRect(newX, self.padding, currentFrame.size.width, currentFrame.size.height);
     [self.dockWindow setFrame:newFrame display:YES];
    
 }
