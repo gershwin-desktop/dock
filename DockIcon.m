@@ -5,21 +5,24 @@
 
 @implementation DockIcon
 
-- (instancetype)initWithFrame:(NSRect)frameRect{
+- (instancetype) initWithFrame:(NSRect)frameRect
+{
     self = [super initWithFrame:frameRect];
 
-    if (self) {
-        // _iconImage = nil;
-        _appName = @"Unknown";
-        _showLabel = YES; // Change this to NO 
-        _activeLight = nil; // Change this to NO 
-
-      [self setupDockIcon];
-    }
+    if (self)
+      {
+          // _iconImage = nil;
+          _appName = @"Unknown";
+          _showLabel = YES; // Change this to NO 
+          _activeLight = nil; // Change this to NO 
+  
+        [self setupDockIcon];
+      }
     return self;
 }
 
-- (void)setupDockIcon {
+- (void) setupDockIcon
+{
     // Do Stuff
     [super setToolTip:_appName];
 
@@ -41,29 +44,33 @@
     
     // Add ActiveLight as a subview to DockIcon
     [self addSubview:_activeLight];
-
 };
 
-- (void)setLabelVisibility:(BOOL) isVisible {
+- (void) setLabelVisibility:(BOOL) isVisible
+{
   self.showLabel = isVisible;
 }
 
-- (void)setActiveLightVisibility:(BOOL)isVisible {
+- (void) setActiveLightVisibility:(BOOL)isVisible
+{
     // Implement visibility toggle in ActiveLight Class
     // Toggle visibility of ActiveLight
     [self.activeLight setVisibility:isVisible];
 }
 
-- (NSString *)getAppName {
+- (NSString *) getAppName
+{
   return _appName;
 }
 
-- (void)setAppName:(NSString *)name {
+- (void) setAppName:(NSString *)name
+{
     _appName = name;
     [super setToolTip:_appName]; 
 }
 
-- (void)selfDestruct {
+- (void) selfDestruct
+{
     [self removeFromSuperview];
 }
 
