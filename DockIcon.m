@@ -41,6 +41,7 @@
     
     // Add ActiveLight as a subview to DockIcon
     [self addSubview:_activeLight];
+
 };
 
 - (void)setLabelVisibility:(BOOL) isVisible {
@@ -59,7 +60,7 @@
 
 - (void)setAppName:(NSString *)name {
     _appName = name;
-    [super setToolTip:_appName];
+    [super setToolTip:_appName]; 
 }
 
 - (void)selfDestruct {
