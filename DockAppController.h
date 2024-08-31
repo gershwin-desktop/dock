@@ -4,6 +4,7 @@
 
 @interface DockAppController : NSObject <NSApplicationDelegate>
 
+@property (strong) NSString *dockPosition;
 @property (strong) NSWindow *dockWindow;
 @property (strong) NSMutableArray *dockedIcons;
 @property (strong) NSMutableArray *undockedIcons;
@@ -37,8 +38,8 @@
 - (NSUInteger)indexOfIcon:(NSString *)appName byDockedStatus:(BOOL)isDocked;
 - (void)checkForNewActivatedIcons;
 - (CGFloat)calculateDockWidth;
-- (void)updateIconPositions:(BOOL)isDocked;
 - (DockIcon *)getIconByName:(NSString *)appName withDockedStatus:(BOOL)isDocked;
+- (void)updateIconPositions:(NSUInteger)startIndex fromDockedIcons:(BOOL)isDocked expandDock:(BOOL)isExpanding;
 
 
 @end
