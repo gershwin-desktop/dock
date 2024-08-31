@@ -7,6 +7,7 @@
 - (instancetype)init {
     self = [super init];
     if (self) {
+        _defaultIcons = [NSArray arrayWithObjects:@"Workspace", @"Terminal", @"SystemPreferences", nil];
         _dockPosition = @"Bottom";
         _dockedIcons = [[NSMutableArray alloc] init];
         _undockedIcons = [[NSMutableArray alloc] init];
@@ -48,7 +49,63 @@
 
 - (void)dealloc {
     // Remove self as an observer to avoid memory leaks
-    [[NSNotificationCenter defaultCenter] removeObserver:self];
+    [[NSNotificationCenter defaultCenter] removeObserver:self]; 
+}
+
+- (void)resetDockedIcons {
+    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+    NSMutableArray *appNames = [NSMutableArray array];
+
+    for (int i = 0; i < [_dockedIcons count]; i++) {
+        DockIcon *dockIcon = [_dockedIcons objectAtIndex:i];
+        NSString *appName = [dockIcon getAppName];
+        [appNames addObject:appName];
+    }
+    [defaults setObject:appNames forKey:@"DockedIcons"];
+    [defaults synchronize]; // Optional, to save changes immediately 
+}
+
+- (void)saveDockedIconsToUserDefaults:(BOOL)reset {
+    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+    if (reset){
+      // Reset the local array
+      NSMutableArray *newArray = [[NSMutableArray alloc] init];
+      _dockedIcons = newArray;
+      for (int index = 0; index < [_defaultIcons count]; index ++) {
+        [self addIcon:[_defaultIcons objectAtIndex:index] toDockedArray:YES];
+      }
+
+      // Reset the NSUserDefaults array
+      [defaults setObject:_defaultIcons forKey:@"DockedIcons"];
+      [defaults synchronize]; // Optional, to save changes immediately 
+    } else {
+      [self resetDockedIcons];
+    }
+}
+
+- (void)loadDockedIconsFromUserDefaults {
+    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+    NSArray<NSString *> *retrievedDockedIcons = [defaults objectForKey:@"DockedIcons"];
+
+    if ([retrievedDockedIcons count] > 0) {
+      NSLog(@"Defaults Exist");
+      NSMutableArray *newArray = [[NSMutableArray alloc] init];
+      _dockedIcons = newArray;
+  
+      for (int i = 0; i < [retrievedDockedIcons count]; i++) {
+        NSString *iconName = [retrievedDockedIcons objectAtIndex:i];
+        NSLog(@"Retrieved icon for %@", iconName);
+        [self addIcon:[retrievedDockedIcons objectAtIndex:i] toDockedArray:YES];
+      }
+      _dockedIcons = newArray;
+      [self updateDockWindow];
+
+    } else {
+      NSLog(@"Defaults not found. Generating defaults");
+      // If NSUserDefaults are missing, reset to defaults
+      [self resetDockedIcons];
+      [self updateDockWindow];
+    }
 }
 
 - (void)setupDockWindow {
@@ -71,12 +128,8 @@
     NSColor *semiTransparentColor = [NSColor colorWithCalibratedWhite:0.1 alpha:0.75];
     [self.dockWindow setBackgroundColor:semiTransparentColor];
     
-    // TODO: Fetch Docked Apps from Prefs
-    
-    // Add default applications icons to the dock window (Replace this with NSUserDefaults)
-    [self addIcon:@"Workspace" toDockedArray:YES];
-    [self addIcon:@"Terminal" toDockedArray:YES];
-    [self addIcon:@"SystemPreferences" toDockedArray:YES];
+    // Fetch Docked Apps from Prefs 
+    [self loadDockedIconsFromUserDefaults];
 
     // TODO: Create Divider
 
@@ -167,6 +220,9 @@
     [iconsArray addObject:dockIcon];
     [[self.dockWindow contentView] addSubview:dockIcon];
     // NSLog(@"Undocked Count: %lu",(unsigned long)[_undockedIcons count]);
+    if (isDocked) {
+      [self saveDockedIconsToUserDefaults:NO];
+    }
     return dockIcon;
 }
 
@@ -182,6 +238,9 @@
       [iconsArray removeObjectIdenticalTo:undockedIcon];
       // Update Undocked Icons
       [self updateIconPositions:index fromDockedIcons:isDocked expandDock:NO];
+      if (isDocked) {
+        [self saveDockedIconsToUserDefaults:NO];
+      }
     } else {
       NSLog(@"Error: Either not found or out of range. Could not remove %@", appName);
       // NSLog(@"Index:%f , Length: %f",index,[iconsArray count]);
