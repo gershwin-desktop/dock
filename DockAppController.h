@@ -19,7 +19,6 @@
 - (void)updateDockWindow;
 
 // Icon Management
-// - (void)addApplicationIcon:(NSString *)appName withDockedStatus:(BOOL)isDocked; // DEPRECATED
 - (DockIcon *)generateIcon:(NSString *)appName withDockedStatus:(BOOL)isDocked;
 - (NSRect)generateLocation:(NSString *)dockPosition forDockedStatus:(BOOL)isDocked atIndex:(CGFloat)index;
 - (void)addDivider;
@@ -35,7 +34,6 @@
 
 // Movers & Helpers
 - (BOOL)isIconDocked:(NSString *)appName;
-// - (BOOL)isAppRunning:(NSString *)appName;
 - (NSUInteger)indexOfIcon:(NSString *)appName byDockedStatus:(BOOL)isDocked;
 - (void)checkForNewActivatedIcons;
 - (CGFloat)calculateDockWidth;
