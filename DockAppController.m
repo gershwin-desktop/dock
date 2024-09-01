@@ -4,7 +4,8 @@
 
 @implementation DockAppController
 
-- (instancetype)init {
+- (instancetype) init
+{
     self = [super init];
     if (self)
       {
@@ -48,7 +49,8 @@
     return self;
 }
 
-- (void)dealloc {
+- (void) dealloc
+{
     // Remove self as an observer to avoid memory leaks
     [[NSNotificationCenter defaultCenter] removeObserver:self]; 
 }
