@@ -74,5 +74,14 @@
     [self removeFromSuperview];
 }
 
+- (void)mouseDown:(NSEvent *)event {
+    [super mouseDown:event];
+
+    // Post a notification when DockIcon is clicked
+    [[NSNotificationCenter defaultCenter] postNotificationName:@"DockIconClickedNotification"
+                                                        object:self
+                                                      userInfo:@{@"appName": self.appName}];
+}
+
 @end
 

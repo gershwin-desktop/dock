@@ -1,5 +1,6 @@
 #import <AppKit/AppKit.h>
 #import "DockAppController.h"
+#import "DockGroup.h"
 #import "DockIcon.h"
 
 @implementation DockAppController
@@ -9,12 +10,16 @@
     self = [super init];
     if (self)
       {
+        _isUnified = YES;
         _defaultIcons = [NSArray arrayWithObjects:@"Workspace", @"Terminal", @"SystemPreferences", nil];
         _dockPosition = @"Bottom";
-        _dockedIcons = [[NSMutableArray alloc] init];
-        _undockedIcons = [[NSMutableArray alloc] init];
+        
+        _showDocked = YES;
+        _showRunning = YES;
+        _showPlaces = NO;
+        
         _workspace = [NSWorkspace sharedWorkspace];  // Initialize the workspace property with the shared instance
-        _iconSize = 64;
+        _iconSize = 72;
         _activeLight = 10;
         _padding = 16;
 
@@ -58,13 +63,8 @@
 - (void) resetDockedIcons
 {
     NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-    NSMutableArray *appNames = [NSMutableArray array];
+    NSMutableArray *appNames = [self.dockedGroup listIconNames];
 
-    for (int i = 0; i < [_dockedIcons count]; i++) {
-        DockIcon *dockIcon = [_dockedIcons objectAtIndex:i];
-        NSString *appName = [dockIcon getAppName];
-        [appNames addObject:appName];
-    }
     [defaults setObject:appNames forKey:@"DockedIcons"];
     [defaults synchronize]; // Optional, to save changes immediately 
 }
@@ -73,18 +73,19 @@
 {
     NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
     if (reset){
-      // Reset the local array
+      // Reset the local array to match user defaults
       NSMutableArray *newArray = [[NSMutableArray alloc] init];
-      _dockedIcons = newArray;
+      // _dockedIcons = newArray;
       for (int index = 0; index < [_defaultIcons count]; index ++) {
-        [self addIcon:[_defaultIcons objectAtIndex:index] toDockedArray:YES];
+        // [self addIcon:[_defaultIcons objectAtIndex:index] toDockedArray:YES];
       }
 
       // Reset the NSUserDefaults array
       [defaults setObject:_defaultIcons forKey:@"DockedIcons"];
       [defaults synchronize]; // Optional, to save changes immediately 
     } else {
-      [self resetDockedIcons];
+      // Reset the local array to match app defaults
+      // [self resetDockedIcons]; // FIXME: Needs to save the docked icons list      
     }
 }
 
@@ -93,18 +94,16 @@
     NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
     NSArray<NSString *> *retrievedDockedIcons = [defaults objectForKey:@"DockedIcons"];
 
-    if ([retrievedDockedIcons count] > 0)
+    if (self.showDocked && [retrievedDockedIcons count] > 0)
       {
       NSLog(@"Defaults Exist");
-      NSMutableArray *newArray = [[NSMutableArray alloc] init];
-      _dockedIcons = newArray;
-  
-      for (int i = 0; i < [retrievedDockedIcons count]; i++) {
-        NSString *iconName = [retrievedDockedIcons objectAtIndex:i];
-        NSLog(@"Retrieved icon for %@", iconName);
-        [self addIcon:[retrievedDockedIcons objectAtIndex:i] toDockedArray:YES];
-      }
-      _dockedIcons = newArray;
+      for (int i = 0; i < [retrievedDockedIcons count]; i++)
+        {
+          NSString *iconName = [retrievedDockedIcons objectAtIndex:i];
+          NSLog(@"NSUserDefaults found icon for %@", iconName);
+          [self.dockedGroup addIcon:[retrievedDockedIcons objectAtIndex:i] withImage:[self.workspace appIconForApp:iconName]];
+        }
+      // _dockedIcons = newArray;
       [self updateDockWindow];
 
       } else {
@@ -116,14 +115,15 @@
 }
 
 - (void) setupDockWindow
-{
+{  
   // Create a dock window without a title bar or standard window buttons 
-  CGFloat dockWidth = [self calculateDockWidth];// (self.padding * 2 + totalIcons * self.iconSize);
+  CGFloat dockWidth = [self calculateDockWidth];
   // Get the main screen (primary display)
   NSScreen *mainScreen = [NSScreen mainScreen];
   NSRect viewport = [mainScreen frame];
   CGFloat x = (viewport.size.width / 2) - (dockWidth / 2);
   NSRect frame = NSMakeRect(x, 16, dockWidth, 8 + self.activeLight + self.iconSize);  // Set size and position of the dock (x, y, w, h)
+
   self.dockWindow = [[NSWindow alloc] initWithContentRect:frame
                                                 styleMask:NSWindowStyleMaskBorderless
                                                   backing:NSBackingStoreBuffered
@@ -135,29 +135,53 @@
   // Set the window's background color with transparency (alpha < 1.0)
   NSColor *semiTransparentColor = [NSColor colorWithCalibratedWhite:0.1 alpha:0.75];
   [self.dockWindow setBackgroundColor:semiTransparentColor];
-  
-  // Fetch Docked Apps from Prefs 
-  [self loadDockedIconsFromUserDefaults];
 
-  // TODO: Create Divider
+  if (self.showDocked)
+      {
+        self.dockedGroup = [[DockGroup alloc] init];  
+        self.dockedGroup.iconSize = self.iconSize;
+        [[self.dockWindow contentView] addSubview:self.dockedGroup];
+
+        // Fetch Docked Apps from Prefs 
+        [self loadDockedIconsFromUserDefaults];
+      }
+
+  if (self.showRunning)
+    {
+        self.runningGroup = [[DockGroup alloc] init];  
+        self.runningGroup.iconSize = self.iconSize;
+        [[self.dockWindow contentView] addSubview:self.runningGroup];
+    }
+
+  // TODO: Create Dividers
 
   // Fetch Running Apps from Workspace
   NSArray *runningApps = [self.workspace launchedApplications];
   for (int i = 0; i < [runningApps count]; i++)
     {
       NSString *runningAppName = [[runningApps objectAtIndex: i] objectForKey: @"NSApplicationName"];  
-      if ([self isIconDocked:runningAppName]) {
-        DockIcon *dockedIcon = [self getIconByName:runningAppName withDockedStatus:YES];          
-        [dockedIcon setActiveLightVisibility:YES]; 
-      } else if([runningAppName isEqualToString:@"Dock"]) {
-        // Don't show dock
-      } else {
-        [self addIcon:runningAppName toDockedArray:NO];
-      }
+      BOOL isDockIcon = [runningAppName isEqualToString:@"Dock"];
+      if (!isDockIcon && self.showDocked && self.dockedGroup)
+        {
+          BOOL dockedIconExists = [self.dockedGroup hasIcon:runningAppName];
+          if (dockedIconExists)
+            {
+              [self.dockedGroup setIconActive:runningAppName];
+            }
+        }
+
+      if (self.showRunning && self.runningGroup)
+        {
+          BOOL runningIconExists = [self.dockedGroup hasIcon:runningAppName];
+          if (!runningIconExists)
+          {
+            [self.runningGroup addIcon:runningAppName withImage:[self.workspace appIconForApp:runningAppName]];
+            [self.runningGroup setIconActive:runningAppName];
+          }
+        }
     }
   
-  // Set all the active lights for running apps
-  [self checkForNewActivatedIcons];
+  // TODO: Create Places group
 
   //Resize Dock Window
   [self updateDockWindow];
@@ -166,141 +190,84 @@
 }
 
 - (CGFloat) calculateDockWidth
-{
-    CGFloat dockWidth = (self.padding * 2 + ([_dockedIcons count] + [_undockedIcons count]) * self.iconSize);
-    return dockWidth;
+{ 
+  NSLog(@"DockAppController: calculateDockWidth...");
+  CGFloat totalIcons = 0;
+
+  if (self.showDocked && self.dockedGroup)
+  {
+    totalIcons += [[self.dockedGroup listIconNames] count];
+    NSLog(@"Adding Docked Icons");
+  }
+
+  if (self.showRunning && self.runningGroup)
+  {
+    NSLog(@"Adding Running Icons");
+    totalIcons += [[self.runningGroup listIconNames] count];
+  }
+
+  if (self.showPlaces && self.placesGroup)
+  {
+    NSLog(@"Adding Places Icons");
+    totalIcons += [[self.placesGroup listIconNames] count];
+  }
+
+  CGFloat dockWidth = (self.padding * 2) + (totalIcons * self.iconSize);
+  return dockWidth;
 }
 
 - (void) updateDockWindow
 {
-    // Adjust the width
-    CGFloat dockWidth = [self calculateDockWidth];
-    NSSize currentContentSize = [self.dockWindow.contentView frame].size;
-    NSSize newContentSize = NSMakeSize(dockWidth, currentContentSize.height); // width, height
-    [self.dockWindow setContentSize:newContentSize];
+  // Adjust the width
+  CGFloat dockWidth = [self calculateDockWidth]; // Contents + padding
+  NSSize currentContentSize = [self.dockWindow.contentView frame].size;
+  NSSize newContentSize = NSMakeSize(dockWidth, currentContentSize.height); // width, height
+  [self.dockWindow setContentSize:newContentSize];
 
-    // Center on screen  
-    NSScreen *mainScreen = [NSScreen mainScreen];
-    NSRect viewport = [mainScreen frame];
-    CGFloat newX = (viewport.size.width / 2) - (dockWidth / 2);
-    NSRect currentFrame = [self.dockWindow.contentView frame];
-    NSRect newFrame = NSMakeRect(newX, self.padding, currentFrame.size.width, currentFrame.size.height);
-    [self.dockWindow setFrame:newFrame display:YES];
-}
+  // Adjust Groups
+  CGFloat newGroupX = self.padding;
+  if (self.showDocked && self.dockedGroup)
+  {
+    NSRect dockedFrame = [self.dockedGroup frame];
+    NSRect newDockedFrame = NSMakeRect(newGroupX, dockedFrame.origin.y, dockedFrame.size.width, dockedFrame.size.height);
+    [self.dockedGroup setFrame:newDockedFrame];
 
-- (void) updateIconPositions:(NSUInteger)startIndex
-             fromDockedIcons:(BOOL)isDocked
-                  expandDock:(BOOL)isExpanding
-{
-    // If isDocked, we need to move subset of dockedIcons and all of the undockedIcons so we create a global array.
-    // Otherwise we move subset of undockedIcons only.
-    NSMutableArray *targetArray = nil;
-    if(isDocked)
-      {
-        targetArray = [_dockedIcons arrayByAddingObjectsFromArray:_undockedIcons];
-      } else {
-        targetArray = _undockedIcons;
-      }
+    // Update X for next check
+    newGroupX += dockedFrame.size.width;
+  }
 
-    for (int i = startIndex; i < [targetArray count]; i++)
-      {
-        DockIcon *dockIcon = [targetArray objectAtIndex:i];
-        NSRect currentFrame = [dockIcon frame];
-  
-        // Horizontal adjustments
-        if([_dockPosition isEqualToString:@"Bottom"]) {
-          CGFloat startX = currentFrame.origin.x;
-  
-          if(isExpanding){
-            CGFloat expandedX = currentFrame.origin.x + _iconSize;          
-            NSRect expandedFrame = NSMakeRect(expandedX, currentFrame.origin.y , self.iconSize, self.iconSize);
-            [dockIcon setFrame:expandedFrame]; // Replace with tween
-          } else {
-            CGFloat contractedX = currentFrame.origin.x - _iconSize;
-            NSRect contractedFrame = NSMakeRect(contractedX, currentFrame.origin.y , self.iconSize, self.iconSize);
-            [dockIcon setFrame:contractedFrame]; // Replace with tween
-          } 
-  
-        }
-      }   
+  if (self.showRunning && self.runningGroup)
+  {
+    NSRect runningFrame = [self.runningGroup frame];
+    NSRect newRunningFrame = NSMakeRect(newGroupX, runningFrame.origin.y, runningFrame.size.width, runningFrame.size.height);
+    [self.runningGroup setFrame:newRunningFrame];
+
+    // Update X for next check
+    newGroupX += runningFrame.size.width;
+  }
+
+  if (self.showPlaces && self.placesGroup)
+  {
+    NSRect placesFrame = [self.runningGroup frame];
+    placesFrame.origin.x = newGroupX;
+
+    // Update X for next check
+    newGroupX += placesFrame.size.width;
+  }
+
+
+  // Center on screen  
+  NSScreen *mainScreen = [NSScreen mainScreen];
+  NSRect viewport = [mainScreen frame];
+  CGFloat newX = (viewport.size.width / 2) - (dockWidth / 2);
+  NSRect currentFrame = [self.dockWindow.contentView frame];
+  NSRect newFrame = NSMakeRect(newX, self.padding, currentFrame.size.width, currentFrame.size.height);
+  [self.dockWindow setFrame:newFrame display:YES];
 }
 
 - (void) addDivider
 {
   // TODO
-}
-
-- (DockIcon *) addIcon:(NSString *)appName
-         toDockedArray:(BOOL)isDocked
-{
-    // TODO: Animation Logic
-    NSMutableArray *iconsArray = isDocked ? _dockedIcons : _undockedIcons;
-    DockIcon *dockIcon = [self generateIcon:appName withDockedStatus:isDocked];
-    [iconsArray addObject:dockIcon];
-    [[self.dockWindow contentView] addSubview:dockIcon];
-
-    if (isDocked) {
-      [self saveDockedIconsToUserDefaults:NO];
-    }
-    return dockIcon;
-}
-
-- (void) removeIcon:(NSString *)appName
-    fromDockedArray:(BOOL)isDocked
-{
-    // TODO: Animation Logic
-    NSMutableArray *iconsArray = isDocked ? _dockedIcons : _undockedIcons;
-    NSUInteger index = [self indexOfIcon:appName byDockedStatus:isDocked];
-    if (index != NSNotFound)
-      { 
-        // NSLog(@"RemoveIcon Method: Removing %@", appName);
-        DockIcon *undockedIcon = [iconsArray objectAtIndex:index];
-        [undockedIcon selfDestruct];
-        [iconsArray removeObjectIdenticalTo:undockedIcon];
-        // Update Undocked Icons
-        [self updateIconPositions:index fromDockedIcons:isDocked expandDock:NO];
-        if (isDocked) {
-          [self saveDockedIconsToUserDefaults:NO];
-        }
-      } else {
-        NSLog(@"Error: Either not found or out of range. Could not remove %@", appName);
-      }
-}
-
-- (BOOL) isIconDocked:(NSString *)appName
-{
-    BOOL defaultValue = NO;
-    // DockIcon *dockedApp = [self.dockedIcons objectForKey:appName];
-    NSUInteger index = [self indexOfIcon:appName byDockedStatus: YES];
-    return index != NSNotFound ? YES : defaultValue;
-}
-
-- (NSUInteger) indexOfIcon:(NSString *)appName
-            byDockedStatus:(BOOL)isDocked
-{
-    NSMutableArray *iconsArray = isDocked ? _dockedIcons : _undockedIcons;
-    NSUInteger index = [iconsArray indexOfObjectPassingTest:^BOOL(id obj, NSUInteger idx, BOOL *stop) {
-        // 'obj' is the current object in the array 
-        DockIcon *dockIcon = (DockIcon *)obj;
-        
-        return [[dockIcon getAppName] isEqualToString:appName];
-    }];
-
-    return index;
-}
-
-- (DockIcon *) getIconByName:(NSString *)appName
-            withDockedStatus:(BOOL)isDocked
-{ 
-    NSMutableArray *iconsArray = isDocked ? _dockedIcons : _undockedIcons;
-    NSUInteger index = [self indexOfIcon:appName byDockedStatus: YES];
-    
-    if (index != NSNotFound) {
-      return [iconsArray objectAtIndex: index];
-    } else {
-      NSLog(@"getIconByName Method: index not found for %@", appName);
-      NSLog(@"getIconByName Method: iconsArray count is %lu",(unsigned long)[iconsArray count]);
-    }
 }
 
 - (void) checkForNewActivatedIcons
@@ -312,93 +279,50 @@
   for (int i = 0; i < [runningApps count]; i++)
     {
       NSString *runningAppName = [[runningApps objectAtIndex: i] objectForKey: @"NSApplicationName"];
-      if ([runningAppName isEqualToString:@"Dock"]) {
-        NSLog(@"Ignoring Dock App");
-        continue;
-      }
-      BOOL isDocked = [self isIconDocked:runningAppName];
+      BOOL isDockIcon = [runningAppName isEqualToString:@"Dock"];
 
-      if (isDocked) {
-        DockIcon *dockedIcon = [self getIconByName:runningAppName withDockedStatus:YES];
-        NSLog(@"Finding dockedIcon for %@", runningAppName);
-        NSLog(@"dockedIcon name is %@", [dockedIcon getAppName]);
-        [dockedIcon setActiveLightVisibility:YES];
-      } else {
-        NSUInteger found = [self indexOfIcon:runningAppName byDockedStatus:NO];
-        NSLog(@"Finding undockedIcon for %@", runningAppName);
-
-        if (found != NSNotFound){
-          NSLog(@"Icon found for app %@", runningAppName);
-          // DockIcon *undockedIcon = [self getIconByName:runningAppName withDockedStatus:NO];
-          DockIcon *undockedIcon = [_undockedIcons objectAtIndex:found];
-          NSLog(@"undockedIcon name is %@", [undockedIcon getAppName]);
-          [undockedIcon setActiveLightVisibility:YES];
-        } else {
-          NSLog(@"undockedIcon index not found for app %@ :", runningAppName);
-          NSLog(@"%lu undocked icons :(", (unsigned long)[_undockedIcons count]);
-          NSLog(@"%lu docked icons :(", (unsigned long)[_dockedIcons count]);
-          if([_undockedIcons count] == 1) {
-            NSLog(@"Manually fetched undockedIcon name is %@", [[_undockedIcons objectAtIndex:0] getAppName]);
-          }
-        }
+      BOOL isDocked = [self.dockedGroup hasIcon:runningAppName];
+      if (!isDockIcon && isDocked && self.showDocked)
+        {
+          [self.dockedGroup setIconActive:runningAppName];
+        } else if (!isDocked && self.showRunning && self.runningGroup) {
+          NSLog(@"Finding undockedIcon for %@", runningAppName);
       }
     }
 }
 
-- (NSRect) generateLocation:(NSString *)dockPosition
-            forDockedStatus:(BOOL)isDocked
-                    atIndex:(CGFloat) index
-{
-    if([dockPosition isEqualToString:@"Left"])
-      {
-        NSRect leftLocation = NSMakeRect(self.activeLight, [self.dockedIcons count] * self.iconSize + (self.padding), self.iconSize, self.iconSize);
-        return leftLocation;
-      } else if([dockPosition isEqualToString:@"Right"]) {
-        NSRect rightLocation = NSMakeRect(self.activeLight, [self.dockedIcons count] * self.iconSize + (self.padding), self.iconSize, self.iconSize);
-        return rightLocation;
-      } else {
-        // If unset we default to "Bottom"      
-        NSRect bottomLocation = NSMakeRect(index * self.iconSize + (self.padding), self.activeLight, self.iconSize, self.iconSize);     
-        return bottomLocation;
-      }
-}
-
-- (DockIcon *) generateIcon:(NSString *)appName
-           withDockedStatus:(BOOL)isDocked
-{
-    CGFloat iconCount = isDocked ? [self.dockedIcons count] : [self.dockedIcons count] + [self.undockedIcons count];
-    NSRect location = [self generateLocation:_dockPosition forDockedStatus:isDocked atIndex:iconCount];  
-    DockIcon *appButton = [[DockIcon alloc] initWithFrame:location];
-    NSImage *iconImage = [self.workspace appIconForApp:appName]; 
-
-    [appButton setImage:iconImage];
-    [appButton setAppName:appName];
-    [appButton setBordered:NO];
-    [appButton setAction:@selector(iconClicked:)];
-    [appButton setTarget:self]; 
-
-    return appButton;
-}
-
 // Events
-
-- (void) iconClicked:(DockIcon *)sender
+- (void) iconClicked:(NSNotification *)notification
 {
-    DockIcon *dockIcon = (DockIcon *)sender;
-    NSString *appName = [dockIcon getAppName];
+    NSLog(@"Callback from DockAppController");
+    // DockIcon *dockIcon = (DockIcon *)sender;
+    // NSString *appName = [dockIcon getAppName];
+    NSString *appName = notification.userInfo[@"appName"];
+    DockIcon *dockIcon = notification.object;
     
     if ([appName isEqualToString:@"Trash"])
       {
         // TODO Pull up Trash UI
-      } else if ([appName isEqualToString:@"Dock"]) {
+      }
+    
+    if ([appName isEqualToString:@"Dock"])
+      {
         // IGNORE this app if it comes up in the list
+        return;
       } else {
         [self.workspace launchApplication:appName];
       }
 }
 
+// When this Dock app has finished launching
 - (void) applicationDidFinishLaunching:(NSNotification *)notification
 {
+      // Register to listen for DockIcon click notifications
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(iconClicked:)
+                                                 name:@"DockIconClickedNotification"
+                                               object:nil];
+
     NSDictionary *userInfo = [notification userInfo];
     NSString *appName = userInfo[@"NSApplicationName"];
     if (appName)
@@ -409,15 +333,20 @@
         }
   
         //TODO  Manage the undocked list here
-        BOOL isDocked = [self isIconDocked:appName];
-        if (isDocked) {
-          DockIcon *dockedIcon = [self getIconByName:appName withDockedStatus:YES];
-        } else {
-          // Add to undocked list
-          DockIcon *undockedIcon = [self addIcon:appName toDockedArray:NO];        
+        BOOL isDocked = _showDocked ? [self.dockedGroup hasIcon:appName] : NO;
+        if (_showDocked && isDocked) {
+          // DockIcon *dockedIcon = [self getIconByName:appName withDockedStatus:YES];
+          [self.dockedGroup setIconActive:appName];
+        } else if (_showRunning && !isDocked) {
+          [self.runningGroup addIcon:appName withImage:[self.workspace appIconForApp:appName]];
+          [self.runningGroup setIconActive:appName];
         }
-        [self checkForNewActivatedIcons];
-        [self updateDockWindow];
+        // [self checkForNewActivatedIcons];
+
+        if(_isUnified)
+        {
+          [self updateDockWindow];
+        }
       } else {
         NSLog(@"Application launched, but could not retrieve name.");
       }
@@ -438,17 +367,21 @@
     NSString *appName = userInfo[@"NSApplicationName"];
     if (appName)
       {
-        // Manage the undocked list here
-        BOOL isDocked = [self isIconDocked:appName];
+        BOOL isDocked = self.showDocked ? [self.dockedGroup hasIcon:appName] : NO;
         if (isDocked)
         {
-          DockIcon *dockedIcon = [self getIconByName:appName withDockedStatus:YES];
-          [dockedIcon setActiveLightVisibility:NO];
-          [self checkForNewActivatedIcons];
-        } else {
-          [self removeIcon:appName fromDockedArray:NO];        
+          [self.dockedGroup setIconTerminated:appName];
+          NSLog(@"DockAppController: setIconTerminated %@", appName);
+        } else if (_showRunning && !isDocked) {
+          [self.runningGroup removeIcon:appName];
+          NSLog(@"DockAppController: removeIcon %@", appName);
         }
-        [self updateDockWindow];
+
+        if (_isUnified)
+        {
+          [self updateDockWindow];
+        }
+
       } else {
         NSLog(@"Application terminated, but could not retrieve name.");
       }

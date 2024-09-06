@@ -1,5 +1,6 @@
 #import <Foundation/Foundation.h>
 #import <AppKit/AppKit.h>
+#import "DockGroup.h"
 #import "DockIcon.h"
 
 @interface DockAppController : NSObject <NSApplicationDelegate>
@@ -7,24 +8,27 @@
 @property (strong) NSArray *defaultIcons;
 @property (strong) NSString *dockPosition;
 @property (strong) NSWindow *dockWindow;
-@property (strong) NSMutableArray *dockedIcons;
-@property (strong) NSMutableArray *undockedIcons;
 @property (strong) NSWorkspace *workspace;
+@property (strong) DockGroup *dockedGroup;
+@property (strong) DockGroup *runningGroup;
+@property (strong) DockGroup *placesGroup;
+
+// Style
 @property CGFloat iconSize;
 @property CGFloat activeLight;
 @property CGFloat padding;
+@property BOOL isUnified;
+@property BOOL showDocked;
+@property BOOL showRunning;
+@property BOOL showPlaces;
 
 // Dock Window Management
 - (void)setupDockWindow;
 - (void)updateDockWindow;
 
 // Icon Management
-- (DockIcon *)generateIcon:(NSString *)appName withDockedStatus:(BOOL)isDocked;
-- (NSRect)generateLocation:(NSString *)dockPosition forDockedStatus:(BOOL)isDocked atIndex:(CGFloat)index;
 - (void)addDivider;
-- (void)iconClicked:(id)sender;
-- (DockIcon *)addIcon:(NSString *)appName toDockedArray:(BOOL)isDocked;
-- (void)removeIcon:(NSString *)appName fromDockedArray:(BOOL)isDocked;
+- (void)iconClicked:(NSNotification *)notification;
 
 // Workspace Events
 - (void)applicationIsLaunching:(NSNotification *)notification;
@@ -33,16 +37,12 @@
 - (void)activeApplicationChanged:(NSNotification *)notification;
 
 // Movers & Helpers
-- (BOOL)isIconDocked:(NSString *)appName;
-- (NSUInteger)indexOfIcon:(NSString *)appName byDockedStatus:(BOOL)isDocked;
 - (void)checkForNewActivatedIcons;
 - (CGFloat)calculateDockWidth;
-- (DockIcon *)getIconByName:(NSString *)appName withDockedStatus:(BOOL)isDocked;
-- (void)updateIconPositions:(NSUInteger)startIndex fromDockedIcons:(BOOL)isDocked expandDock:(BOOL)isExpanding;
 
 // Defaults
 - (void)resetDockedIcons;
-- (void)saveDockedIconsToUserDefaults;
+- (void)saveDockedIconsToUserDefaults:(BOOL)reset;
 - (void)loadDockedIconsFromUserDefaults;
 
 @end
