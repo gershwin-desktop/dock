@@ -76,8 +76,16 @@
 
 
 // Events
+- (BOOL)trackMouse:(NSEvent *)event inRect:(NSRect)cellFrame ofView:(NSView *)controlView untilMouseUp:(BOOL)flag {
+    [self mouseDown:event];
+    [self mouseUp:event];
+    [self mouseDragged:event];
+    return YES;
+}
+
 - (void)mouseDown:(NSEvent *)event {
     [super mouseDown:event];
+    NSLog(@"DockIcon MouseDown EVENT");
 
     // Post a notification when DockIcon is clicked
     [[NSNotificationCenter defaultCenter] postNotificationName:@"DockIconClickedNotification"
@@ -85,8 +93,22 @@
                                                       userInfo:@{@"appName": self.appName}];
 }
 
+- (void)mouseUp:(NSEvent *)event {
+    [super mouseUp:event];
+    NSLog(@"DockIcon MouseUp EVENT");
+/*
+    // Post a notification when DockIcon is clicked
+    [[NSNotificationCenter defaultCenter] postNotificationName:@"DockIconClickedNotification"
+                                                        object:self
+                                                      userInfo:@{@"appName": self.appName}];
+*/
+}
+
 
 - (void)mouseDragged:(NSEvent *)event {
+    [super mouseDragged:event];
+    NSLog(@"DockIcon MouseDragged EVENT");
+
     // Prepare the pasteboard for dragging the DockIcon
     NSPasteboard *pasteboard = [NSPasteboard pasteboardWithName:NSDragPboard];
     [pasteboard declareTypes:@[NSStringPboardType] owner:self];
