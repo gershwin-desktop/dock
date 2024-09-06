@@ -29,6 +29,7 @@
 // Icon Management
 - (void)addDivider;
 - (void)iconClicked:(NSNotification *)notification;
+- (void)iconDropped:(NSNotification *)notification;
 
 // Workspace Events
 - (void)applicationIsLaunching:(NSNotification *)notification;

@@ -26,6 +26,8 @@
 @property BOOL canDragMove;
 @property (strong) NSString *screenEdge; // set by DockAppController
 
+// Helpers
+@property (strong) NSWorkspace *workspace;
 
 // Icon Management
 - (DockIcon *)generateIcon:(NSString *)appName withImage:(NSImage *)iconImage;

@@ -11,8 +11,15 @@
     if (self)
       {
         // Register for string types to allow for dragging DockIcons
-        [self registerForDraggedTypes:@[NSStringPboardType]];
+        
+        [self registerForDraggedTypes:@[
+          // NSPasteboardTypeString,     // For strings
+          //NSPasteboardTypeFileURL,    // For file URLs
+          NSFilenamesPboardType,    // For file URLs
+          // NSPasteboardTypeURL         // For generic URLs
+        ]];
 
+        _workspace = [NSWorkspace sharedWorkspace];
         _dockWindow = nil;
         _defaultIcons = [NSArray arrayWithObjects:@"Workspace", @"Terminal", @"SystemPreferences", nil];
         _dockPosition = @"Bottom";
@@ -221,22 +228,42 @@
     return NSDragOperationNone;
 }
 
+// Called after dragging has ended, allowing you to detect if the drag was outside
+- (void)draggingEnded:(id<NSDraggingInfo>)sender {
+    NSPoint dropLocation = [sender draggingLocation];
+    BOOL isInsideDockGroup = NSPointInRect(dropLocation, self.frame);
+    
+    if (!isInsideDockGroup) {
+        // Handle the case where the item was dropped outside DockGroup
+        NSLog(@"DockIcon was dropped outside of DockGroup.");
+        // If necessary, remove the DockIcon or handle the drop outside case here.
+    }
+}
+
 // Perform the drop operation
 - (BOOL)performDragOperation:(id<NSDraggingInfo>)sender {
     NSPasteboard *pasteboard = [sender draggingPasteboard];
-    NSString *droppedAppName = [pasteboard stringForType:NSStringPboardType];
-    
-    if (droppedAppName) {
-        NSLog(@"Dropped icon: %@", droppedAppName);
-        // Reorder or move the DockIcon as needed
-        DockIcon *icon = [self getIconByName:droppedAppName];
-        
-        if (icon) {
-            // Handle the reordering of the icon here, if necessary
-            [self updateIconPositions:[self indexOfIcon:droppedAppName] expandDock:NO];
-        }
+
+    // Drop is within bounds
+    NSArray *draggedFilenames = [[sender draggingPasteboard] propertyListForType:NSFilenamesPboardType];
+    NSString *appName = [[[draggedFilenames objectAtIndex:0] lastPathComponent] stringByDeletingPathExtension];
+    BOOL alreadyDocked = [self hasIcon:appName];
+
+    if (self.acceptsIcons && [[[draggedFilenames objectAtIndex:0] pathExtension] isEqual:@"app"] && !alreadyDocked)
+    {
+      NSLog(@"App %@ Dropped to Dock", appName);
+      
+      // Post a notification when DockIcon is clicked
+      [[NSNotificationCenter defaultCenter] postNotificationName:@"DockIconDroppedNotification"
+                                                          object:self
+                                                        userInfo:@{@"appName": appName}];
+      // [self addIcon:appName withImage:[self.workspace appIconForApp:appName]];
         return YES;
+    } else {
+      NSLog(@"App Dropp failed");
+        return NO;
     }
+
     return NO;
 }
 

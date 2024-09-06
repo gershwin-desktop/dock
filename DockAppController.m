@@ -49,6 +49,18 @@
                                             name:NSApplicationDidBecomeActiveNotification // is NSWorkspaceDidActivateApplicationNotification on MacOS
                                            object:nil];
 
+        // Register to listen for DockIcon click notifications
+        [[NSNotificationCenter defaultCenter] addObserver:self
+                                                 selector:@selector(iconClicked:)
+                                                     name:@"DockIconClickedNotification"
+                                                   object:nil];
+
+        // Register to listen for DockIcon click notifications
+        [[NSNotificationCenter defaultCenter] addObserver:self
+                                                 selector:@selector(iconDropped:)
+                                                     name:@"DockIconDroppedNotification"
+                                                   object:nil];
+        
         [self setupDockWindow];
       }
     return self;
@@ -140,6 +152,7 @@
       {
         self.dockedGroup = [[DockGroup alloc] init];  
         self.dockedGroup.iconSize = self.iconSize;
+        self.dockedGroup.acceptsIcons = YES;
         [[self.dockWindow contentView] addSubview:self.dockedGroup];
 
         // Fetch Docked Apps from Prefs 
@@ -292,6 +305,31 @@
 }
 
 // Events
+- (void) iconDropped:(NSNotification *)notification
+{
+    NSString *appName = notification.userInfo[@"appName"];
+    BOOL isRunning = [self.runningGroup hasIcon:appName];
+    // Add it to the docked group
+    [self.dockedGroup addIcon:appName withImage:[self.workspace appIconForApp:appName]];
+
+    // If it's in the running group then remove it
+    if (self.showRunning && self.runningGroup)
+    {
+      if (isRunning)
+      {
+        [self.runningGroup removeIcon:appName];
+        [self.dockedGroup setIconActive:appName];
+      }
+    }
+   
+    
+
+    if (self.isUnified)
+      {
+        [self updateDockWindow];
+      }
+}
+
 - (void) iconClicked:(NSNotification *)notification
 {
     NSLog(@"Callback from DockAppController");
@@ -317,11 +355,6 @@
 // When this Dock app has finished launching
 - (void) applicationDidFinishLaunching:(NSNotification *)notification
 {
-      // Register to listen for DockIcon click notifications
-    [[NSNotificationCenter defaultCenter] addObserver:self
-                                             selector:@selector(iconClicked:)
-                                                 name:@"DockIconClickedNotification"
-                                               object:nil];
 
     NSDictionary *userInfo = [notification userInfo];
     NSString *appName = userInfo[@"NSApplicationName"];

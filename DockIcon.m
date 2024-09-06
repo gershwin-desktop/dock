@@ -74,6 +74,8 @@
     [self removeFromSuperview];
 }
 
+
+// Events
 - (void)mouseDown:(NSEvent *)event {
     [super mouseDown:event];
 
@@ -82,6 +84,40 @@
                                                         object:self
                                                       userInfo:@{@"appName": self.appName}];
 }
+
+
+- (void)mouseDragged:(NSEvent *)event {
+    // Prepare the pasteboard for dragging the DockIcon
+    NSPasteboard *pasteboard = [NSPasteboard pasteboardWithName:NSDragPboard];
+    [pasteboard declareTypes:@[NSStringPboardType] owner:self];
+    
+    // Set some identifier or app name for the dragged item
+    [pasteboard setString:self.appName forType:NSStringPboardType];
+
+    // Create a drag image (optional: you can customize it to your needs)
+    NSImage *dragImage = [self createDragImage];
+    NSPoint dragPosition = [self convertPoint:[event locationInWindow] fromView:nil];
+    NSLog(@"DockIcon is Dragging...");
+    
+    // Initiate the drag operation
+    [self dragImage:dragImage
+                 at:dragPosition
+             offset:NSZeroSize
+              event:event
+         pasteboard:pasteboard
+             source:self
+          slideBack:NO];  // No sliding back, as we'll remove the icon if dragged out
+}
+
+- (NSImage *)createDragImage {
+    NSImage *image = self.iconImage; // [[NSImage alloc] initWithSize:self.bounds.size];
+    [image lockFocus];
+    [[NSColor redColor] setFill];  // Example: a red square as a drag image
+    NSRectFill(self.bounds);
+    [image unlockFocus];
+    return image;
+}
+
 
 @end
 
