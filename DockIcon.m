@@ -76,15 +76,8 @@
 
 
 // Events
-- (BOOL)trackMouse:(NSEvent *)event inRect:(NSRect)cellFrame ofView:(NSView *)controlView untilMouseUp:(BOOL)flag {
-    [self mouseDown:event];
-    [self mouseUp:event];
-    [self mouseDragged:event];
-    return YES;
-}
-
 - (void)mouseDown:(NSEvent *)event {
-    [super mouseDown:event];
+    // [super mouseDown:event];
     NSLog(@"DockIcon MouseDown EVENT");
 
     // Post a notification when DockIcon is clicked
@@ -94,19 +87,21 @@
 }
 
 - (void)mouseUp:(NSEvent *)event {
-    [super mouseUp:event];
+    // [super mouseUp:event];
     NSLog(@"DockIcon MouseUp EVENT");
-/*
+
     // Post a notification when DockIcon is clicked
     [[NSNotificationCenter defaultCenter] postNotificationName:@"DockIconClickedNotification"
                                                         object:self
                                                       userInfo:@{@"appName": self.appName}];
-*/
+
 }
 
 
-- (void)mouseDragged:(NSEvent *)event {
-    [super mouseDragged:event];
+// - (void)startExternalDragOnEvent:(NSEvent *)event
+- (void)mouseDragged:(NSEvent *)event
+{
+    // [super mouseDragged:event];
     NSLog(@"DockIcon MouseDragged EVENT");
 
     // Prepare the pasteboard for dragging the DockIcon
@@ -117,28 +112,31 @@
     [pasteboard setString:self.appName forType:NSStringPboardType];
 
     // Create a drag image (optional: you can customize it to your needs)
-    NSImage *dragImage = [self createDragImage];
+    // NSImage *dragImage = [self createDragImage];
     NSPoint dragPosition = [self convertPoint:[event locationInWindow] fromView:nil];
     NSLog(@"DockIcon is Dragging...");
     
     // Initiate the drag operation
-    [self dragImage:dragImage
+    [self dragImage:self.iconImage
                  at:dragPosition
              offset:NSZeroSize
               event:event
          pasteboard:pasteboard
              source:self
           slideBack:NO];  // No sliding back, as we'll remove the icon if dragged out
+
 }
 
-- (NSImage *)createDragImage {
-    NSImage *image = self.iconImage; // [[NSImage alloc] initWithSize:self.bounds.size];
-    [image lockFocus];
-    [[NSColor redColor] setFill];  // Example: a red square as a drag image
-    NSRectFill(self.bounds);
-    [image unlockFocus];
-    return image;
-}
+
+/*- (NSImage *)createDragImage {
+    //NSImage *image = self.iconImage; // [[NSImage alloc] initWithSize:self.bounds.size];
+    //[image lockFocus];
+    //[[NSColor redColor] setFill];  // Example: a red square as a drag image
+    //NSRectFill(self.bounds);
+    //[image unlockFocus];
+    // return image;
+    return self.iconImage;
+}*/
 
 
 @end

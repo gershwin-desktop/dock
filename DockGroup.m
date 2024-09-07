@@ -56,7 +56,8 @@
     NSRect currentFrame = [self frame]; 
     NSRect newFrame = NSMakeRect(currentFrame.origin.x, 0, newContentSize.width, newContentSize.height);
 
-    [self setFrame:newFrame];
+    [self setFrame:newFrame]; 
+    // [self setNeedsDisplay:YES];
 }
 
 - (void) updateIconPositions:(NSUInteger)startIndex
@@ -64,7 +65,6 @@
 {
     // If isDocked, we need to move subset of dockedIcons and all of the undockedIcons so we create a global array.
     // Otherwise we move subset of undockedIcons only.
-    NSMutableArray *targetArray = nil;
     for (int i = startIndex; i < [self.dockedIcons count]; i++)
       {
         DockIcon *dockIcon = [self.dockedIcons objectAtIndex:i];
@@ -85,6 +85,7 @@
           } 
   
         }
+
       }   
 }
 
@@ -98,6 +99,9 @@
     [self addSubview:dockIcon];
     [self updateFrame];
 
+    // Force redraw
+    // [self setNeedsDisplay:YES];
+
     return dockIcon;
 }
 
@@ -105,11 +109,13 @@
 {
     // TODO: Animation Logic
     NSMutableArray *iconsArray = self.dockedIcons;
-    NSUInteger index = [self indexOfIcon:appName];
-    NSLog(@"DockGroup: About to remove %@", appName);
-    if (index != NSNotFound)
+    BOOL iconExists = [self hasIcon:appName];
+    if (iconExists)
       { 
-        // NSLog(@"RemoveIcon Method: Removing %@", appName);
+        NSLog(@"Before index");
+        NSUInteger index = [self indexOfIcon:appName];
+        NSLog(@"After index");
+        NSLog(@"RemoveIcon Method: Removing %@", appName);
         DockIcon *undockedIcon = [iconsArray objectAtIndex:index];
         [undockedIcon selfDestruct];
         [iconsArray removeObjectIdenticalTo:undockedIcon];
@@ -118,6 +124,10 @@
       } else {
         NSLog(@"Error: Either not found or out of range. Could not remove %@", appName);
       }
+
+    NSLog(@"DockGroup: Finished removing %@", appName);
+    // Force redraw
+    [self setNeedsDisplay:YES];
 }
 
 - (BOOL) hasIcon:(NSString *)appName
@@ -127,7 +137,6 @@
 
     if(index != NSNotFound)
       {
-        NSLog(@"DockGroup HASICON:%@ ", appName);
         return YES;
       } else {
         return defaultValue;
@@ -225,6 +234,7 @@
     if ([[pasteboard types] containsObject:NSStringPboardType]) {
         return NSDragOperationMove; // Allow moving the DockIcon within the DockGroup
     }
+    NSLog(@"DockIcon entered DockGroup.");
     return NSDragOperationNone;
 }
 
@@ -233,16 +243,17 @@
     NSPoint dropLocation = [sender draggingLocation];
     BOOL isInsideDockGroup = NSPointInRect(dropLocation, self.frame);
     
-    if (!isInsideDockGroup) {
+    //if (!isInsideDockGroup) {
         // Handle the case where the item was dropped outside DockGroup
         NSLog(@"DockIcon was dropped outside of DockGroup.");
         // If necessary, remove the DockIcon or handle the drop outside case here.
-    }
+    //}
 }
 
 // Perform the drop operation
 - (BOOL)performDragOperation:(id<NSDraggingInfo>)sender {
     NSPasteboard *pasteboard = [sender draggingPasteboard];
+    NSLog(@"App Dropp method");
 
     // Drop is within bounds
     NSArray *draggedFilenames = [[sender draggingPasteboard] propertyListForType:NSFilenamesPboardType];
@@ -253,7 +264,7 @@
     {
       NSLog(@"App %@ Dropped to Dock", appName);
       
-      // Post a notification when DockIcon is clicked
+      // Post a notification when an App bundle is dropped onto dockedGroup
       [[NSNotificationCenter defaultCenter] postNotificationName:@"DockIconDroppedNotification"
                                                           object:self
                                                         userInfo:@{@"appName": appName}];

@@ -307,8 +307,10 @@
 // Events
 - (void) iconDropped:(NSNotification *)notification
 {
+
     NSString *appName = notification.userInfo[@"appName"];
     BOOL isRunning = [self.runningGroup hasIcon:appName];
+   
     // Add it to the docked group
     [self.dockedGroup addIcon:appName withImage:[self.workspace appIconForApp:appName]];
 
@@ -317,13 +319,11 @@
     {
       if (isRunning)
       {
-        [self.runningGroup removeIcon:appName];
+        [self.runningGroup removeIcon:appName]; 
         [self.dockedGroup setIconActive:appName];
       }
     }
-   
     
-
     if (self.isUnified)
       {
         [self updateDockWindow];
