@@ -60,6 +60,12 @@
                                                  selector:@selector(iconDropped:)
                                                      name:@"DockIconDroppedNotification"
                                                    object:nil];
+
+        // Register to listen for DockGroup updates
+        [[NSNotificationCenter defaultCenter] addObserver:self
+                                                 selector:@selector(iconAddedToGroup:)
+                                                     name:@"DockIconAddedToGroup"
+                                                   object:nil];
         
         [self setupDockWindow];
       }
@@ -332,6 +338,37 @@
       }
 }
 
+- (void) iconAddedToGroup:(NSNotification *)notification
+{
+    NSString *appName = notification.userInfo[@"appName"];
+    NSString *groupName = notification.userInfo[@"groupName"];
+    BOOL isRunning = [self.runningGroup hasIcon:appName];
+
+    NSLog(@"Controller: App %@ is being added to group %@", appName, groupName);
+
+   
+    if ([groupName isEqualToString:[self.dockedGroup getGroupName]])
+    {
+      // Add it to the docked group
+      [self.dockedGroup addIcon:appName withImage:[self.workspace appIconForApp:appName]];
+  
+      // If it's in the running group then remove it
+      if (self.showRunning && self.runningGroup)
+      {
+        if (isRunning)
+        {
+          [self.runningGroup removeIcon:appName]; 
+          [self.dockedGroup setIconActive:appName];
+        }
+      }
+    }
+    
+    if (self.isUnified)
+      {
+        [self updateDockWindow];
+      }
+}
+
 - (void) iconClicked:(NSNotification *)notification
 {
     NSLog(@"Callback from DockAppController");
@@ -351,6 +388,11 @@
         return;
       } else {
         [self.workspace launchApplication:appName];
+      }
+
+    if (self.isUnified)
+      {
+        [self updateDockWindow];
       }
 }
 

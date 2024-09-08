@@ -112,7 +112,7 @@
     [self updateFrame];
 
     // Force redraw
-    // [self setNeedsDisplay:YES];
+    [self setNeedsDisplay:YES];
 
     return dockIcon;
 }
@@ -378,15 +378,20 @@
     }
 
     // Check for DockIcon drops (NSStringPboardType)
-    if ([[pasteboard types] containsObject:NSStringPboardType]) {
+    if (self.acceptsIcons && [[pasteboard types] containsObject:NSStringPboardType]) {
         NSString *appName = [pasteboard stringForType:NSStringPboardType];
         BOOL alreadyDocked = [self hasIcon:appName];
 
         if (!alreadyDocked) {
-            NSLog(@"DockIcon %@ Dropped to DockGroup", appName);
-            // Get the app icon and add it to the dock
-            NSImage *appIcon = [self.workspace iconForFile:[self.workspace absolutePathForAppBundleWithIdentifier:appName]];
-            [self addIcon:appName withImage:appIcon];
+            NSLog(@"DockIcon %@ Dropped to DockGroup %@", appName, self.groupName);
+            // Notify the controller that an icon has been added to this group
+            [[NSNotificationCenter defaultCenter] postNotificationName:@"DockIconAddedToGroup"
+                                                                object:self
+                                                              userInfo:@{
+                                                            @"appName": appName,
+                                                                    @"groupName":[self getGroupName]
+                                                              }];
+
             return YES;
         } else {
             NSLog(@"DockIcon %@ is already in the dock", appName);
@@ -400,6 +405,6 @@
 // Provide feedback as the dragging session progresses
 - (NSDragOperation)draggingUpdated:(id<NSDraggingInfo>)sender
 {
-    return NSDragOperationMove;
+    return NSDragOperationPrivate;
 }
 @end

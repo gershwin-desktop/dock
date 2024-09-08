@@ -141,12 +141,6 @@ NSPoint initialDragLocation;  // Declare instance variable inside @implementatio
 - (void)mouseDown:(NSEvent *)event {
     // [super mouseDown:event];
     NSLog(@"DockIcon MouseDown EVENT");
-
-    // Post a notification when DockIcon is clicked
-//    [[NSNotificationCenter defaultCenter] postNotificationName:@"DockIconClickedNotification"
-//                                                        object:self
-//                                                      userInfo:@{@"appName": self.appName}];
-
     // Capture the initial drag location (in window coordinates)
     initialDragLocation = [event locationInWindow];
 }
@@ -186,6 +180,8 @@ NSPoint initialDragLocation;  // Declare instance variable inside @implementatio
     NSPoint dragLocation = [event locationInWindow];
     
     /*
+    // TODO: Decide if this custom drag behavior is how we should do things. Remove if the answer is no
+
     // Get the current icon image size
     NSSize imageSize = [self.iconImage size];
 
@@ -246,9 +242,10 @@ NSPoint initialDragLocation;  // Declare instance variable inside @implementatio
     [self setNeedsDisplay:YES];
 }
 
-
-- (NSDragOperation)draggingSession:(NSDraggingSession *)session sourceOperationMaskForDraggingContext:(NSDraggingContext)context {
-    return NSDragOperationMove;
+// Specify that this DockIcon supports the private drag operation
+- (NSDragOperation)draggingSourceOperationMaskForLocal:(BOOL)isLocal
+{
+    return NSDragOperationPrivate;
 }
 
 - (NSImage *)drawImage:(NSImage *)image withSize:(NSSize)size {
