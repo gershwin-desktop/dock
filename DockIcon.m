@@ -19,6 +19,8 @@ NSPoint initialDragLocation;  // Declare instance variable inside @implementatio
           _showLabel = YES; // Change this to NO 
           _activeLight = nil; // Change this to NO
           _activeLightDiameter = 4.0;
+
+          _isDragging = NO;
   
         [self setupDockIcon];
       }
@@ -104,7 +106,7 @@ NSPoint initialDragLocation;  // Declare instance variable inside @implementatio
 {
     [super drawRect:dirtyRect];
 
-    if (self.iconImage)
+    if (self.iconImage && !_isDragging)
     {        
         NSSize fixedSize = NSMakeSize(self.iconSize, self.iconSize);
 
@@ -141,9 +143,9 @@ NSPoint initialDragLocation;  // Declare instance variable inside @implementatio
     NSLog(@"DockIcon MouseDown EVENT");
 
     // Post a notification when DockIcon is clicked
-    [[NSNotificationCenter defaultCenter] postNotificationName:@"DockIconClickedNotification"
-                                                        object:self
-                                                      userInfo:@{@"appName": self.appName}];
+//    [[NSNotificationCenter defaultCenter] postNotificationName:@"DockIconClickedNotification"
+//                                                        object:self
+//                                                      userInfo:@{@"appName": self.appName}];
 
     // Capture the initial drag location (in window coordinates)
     initialDragLocation = [event locationInWindow];
@@ -160,11 +162,11 @@ NSPoint initialDragLocation;  // Declare instance variable inside @implementatio
 
 }
 
-
-// - (void)startExternalDragOnEvent:(NSEvent *)event
 - (void)mouseDragged:(NSEvent *)event
 { 
     NSLog(@"DockIcon MouseDragged EVENT");
+
+    _isDragging = YES;
 
     // Prepare the pasteboard for dragging the DockIcon
     NSPasteboard *pasteboard = [NSPasteboard pasteboardWithName:NSDragPboard];
@@ -182,18 +184,22 @@ NSPoint initialDragLocation;  // Declare instance variable inside @implementatio
     NSLog(@"DockIcon is Dragging...");
 
     NSPoint dragLocation = [event locationInWindow];
+    
+    /*
+    // Get the current icon image size
+    NSSize imageSize = [self.iconImage size];
 
-    // Create a temporary window for the drag
-    NSWindow *dragWindow = [[NSWindow alloc] initWithContentRect:NSMakeRect(dragLocation.x, dragLocation.y, self.iconSize, self.iconSize)
+    // Create a temporary window for the drag, with the size of the icon image
+    NSWindow *dragWindow = [[NSWindow alloc] initWithContentRect:NSMakeRect([NSEvent mouseLocation].x, [NSEvent mouseLocation].y, imageSize.width, imageSize.height)
                                                        styleMask:NSWindowStyleMaskBorderless
                                                          backing:NSBackingStoreBuffered
                                                            defer:NO];
-    
+
     [dragWindow setOpaque:NO];
     [dragWindow setBackgroundColor:[NSColor clearColor]];
 
-    // Create an NSImageView to hold the icon image
-    NSImageView *imageView = [[NSImageView alloc] initWithFrame:NSMakeRect(0, 0, self.iconSize, self.iconSize)];
+    // Create an NSImageView to hold the icon image with its original size
+    NSImageView *imageView = [[NSImageView alloc] initWithFrame:NSMakeRect(0, 0, imageSize.width, imageSize.height)];
     [imageView setImage:self.iconImage];
 
     [dragWindow.contentView addSubview:imageView];
@@ -216,9 +222,49 @@ NSPoint initialDragLocation;  // Declare instance variable inside @implementatio
     }
 
     // After the drag ends, remove the window
-    [dragWindow close];
+    [dragWindow close];*/
 
+
+    // Without custom drag implementation
+    // Convert the mouse location from window coordinates to the DockIcon's view coordinates
+    NSPoint dragPosition = [self convertPoint:[event locationInWindow] fromView:nil];
+
+    // Create the drag image by calling the abstracted method
+    NSImage *dragImage = [self drawImage:self.iconImage withSize:self.iconImage.size];
+
+    // Initiate the drag operation with the proper source and type
+    [self dragImage:dragImage  // Image to show during drag
+                 at:dragPosition   // Drag start position
+             offset:NSZeroSize
+              event:event
+         pasteboard:pasteboard
+             source:self            // Set the DockIcon as the source
+          slideBack:YES];            // If the drag is canceled, the icon returns to its original position
+    
+    
+    _isDragging = NO;
     [self setNeedsDisplay:YES];
+}
+
+
+- (NSDragOperation)draggingSession:(NSDraggingSession *)session sourceOperationMaskForDraggingContext:(NSDraggingContext)context {
+    return NSDragOperationMove;
+}
+
+- (NSImage *)drawImage:(NSImage *)image withSize:(NSSize)size {
+    // Create a new image with the provided size
+    NSImage *newImage = [[NSImage alloc] initWithSize:size];
+
+    // Lock focus on the new image to draw the original image into it
+    [newImage lockFocus];
+    [image drawInRect:NSMakeRect(0, 0, size.width, size.height)
+             fromRect:NSZeroRect
+            operation:NSCompositeSourceOver  // Use NSCompositeSourceOver for GNUstep
+             fraction:1.0];
+    [newImage unlockFocus];
+
+    // Return the newly created image
+    return newImage;
 }
 
 @end

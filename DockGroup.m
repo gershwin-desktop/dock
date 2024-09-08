@@ -13,12 +13,14 @@
         // Register for string types to allow for dragging DockIcons
         
         [self registerForDraggedTypes:@[
+          NSFilenamesPboardType,    // For file URLs
+          NSStringPboardType // For our DockIcon instances
           // NSPasteboardTypeString,     // For strings
           //NSPasteboardTypeFileURL,    // For file URLs
-          NSFilenamesPboardType,    // For file URLs
           // NSPasteboardTypeURL         // For generic URLs
         ]];
 
+        _groupName = @"Unknown";
         _workspace = [NSWorkspace sharedWorkspace];
         _dockWindow = nil;
         _defaultIcons = [NSArray arrayWithObjects:@"Workspace", @"Terminal", @"SystemPreferences", nil];
@@ -38,6 +40,16 @@
 {
     // Remove self as an observer to avoid memory leaks
     [[NSNotificationCenter defaultCenter] removeObserver:self]; 
+}
+
+- (NSString *) getGroupName
+{
+  return _groupName;
+}
+
+- (void) setGroupName:(NSString *)groupName
+{
+  _groupName = groupName;
 }
 
 - (CGFloat) calculateDockWidth
@@ -229,58 +241,165 @@
 
 
 // Drag and drop stuff
+
 // Handle dragging entered into the DockGroup
-- (NSDragOperation)draggingEntered:(id<NSDraggingInfo>)sender {
+- (NSDragOperation)draggingEntered:(id<NSDraggingInfo>)sender
+{
     NSPasteboard *pasteboard = [sender draggingPasteboard];
-    if ([[pasteboard types] containsObject:NSStringPboardType]) {
-        return NSDragOperationMove; // Allow moving the DockIcon within the DockGroup
+    // Handle file drops
+    if ([[pasteboard types] containsObject:NSFilenamesPboardType]) {
+        NSArray *draggedFilenames = [[sender draggingPasteboard] propertyListForType:NSFilenamesPboardType];
+        NSString *appBundleName = [[[draggedFilenames objectAtIndex:0] lastPathComponent] stringByDeletingPathExtension];
+        BOOL alreadyDocked = [self hasIcon:appBundleName];
+
+        if (!alreadyDocked)
+        {
+          NSLog(@"App bundle %@ entered DockGroup %@.", appBundleName, self.groupName);
+          return NSDragOperationCopy;  // Allow file drops
+        }
     }
-    NSLog(@"DockIcon entered DockGroup.");
+
+    // Handle DockIcon drags
+    if ([[pasteboard types] containsObject:NSStringPboardType]) {        
+        NSString *appName = [pasteboard stringForType:NSStringPboardType];
+        BOOL alreadyDocked = [self hasIcon:appName];
+
+        if (!alreadyDocked)
+        {
+          NSLog(@"DockIcon %@ entered DockGroup %@.", appName, self.groupName);
+          return NSDragOperationMove;  // Allow moving the DockIcon within DockGroup
+        }
+    }
+
     return NSDragOperationNone;
 }
 
-// Called after dragging has ended, allowing you to detect if the drag was outside
-- (void)draggingEnded:(id<NSDraggingInfo>)sender {
-    NSPoint dropLocation = [sender draggingLocation];
-    BOOL isInsideDockGroup = NSPointInRect(dropLocation, self.frame);
-    
-    //if (!isInsideDockGroup) {
-        // Handle the case where the item was dropped outside DockGroup
-        NSLog(@"DockIcon was dropped outside of DockGroup.");
-        // If necessary, remove the DockIcon or handle the drop outside case here.
-    //}
-}
-
-// Perform the drop operation
-- (BOOL)performDragOperation:(id<NSDraggingInfo>)sender {
+// Handle dragging entered into the DockGroup
+- (void)draggingExited:(id<NSDraggingInfo>)sender
+{
     NSPasteboard *pasteboard = [sender draggingPasteboard];
-    NSLog(@"App Dropp method");
+    if ([[pasteboard types] containsObject:NSFilenamesPboardType]) {
+        NSArray *draggedFilenames = [[sender draggingPasteboard] propertyListForType:NSFilenamesPboardType];
+        NSString *appBundleName = [[[draggedFilenames objectAtIndex:0] lastPathComponent] stringByDeletingPathExtension];
+        BOOL alreadyDocked = [self hasIcon:appBundleName];
 
-    // Drop is within bounds
-    NSArray *draggedFilenames = [[sender draggingPasteboard] propertyListForType:NSFilenamesPboardType];
-    NSString *appName = [[[draggedFilenames objectAtIndex:0] lastPathComponent] stringByDeletingPathExtension];
-    BOOL alreadyDocked = [self hasIcon:appName];
-
-    if (self.acceptsIcons && [[[draggedFilenames objectAtIndex:0] pathExtension] isEqual:@"app"] && !alreadyDocked)
-    {
-      NSLog(@"App %@ Dropped to Dock", appName);
-      
-      // Post a notification when an App bundle is dropped onto dockedGroup
-      [[NSNotificationCenter defaultCenter] postNotificationName:@"DockIconDroppedNotification"
-                                                          object:self
-                                                        userInfo:@{@"appName": appName}];
-      // [self addIcon:appName withImage:[self.workspace appIconForApp:appName]];
-        return YES;
-    } else {
-      NSLog(@"App Dropp failed");
-        return NO;
+        if (alreadyDocked)
+        {
+          NSLog(@"App bundle %@ exited DockGroup %@.", appBundleName, self.groupName);
+        }
     }
 
+    // Handle DockIcon drags
+    if ([[pasteboard types] containsObject:NSStringPboardType]) {        
+        NSString *appName = [pasteboard stringForType:NSStringPboardType];
+        BOOL alreadyDocked = [self hasIcon:appName];
+
+        if (alreadyDocked)
+        {
+          NSLog(@"DockIcon %@ exited DockGroup %@.", appName, self.groupName);
+        }
+    }
+
+}
+
+// Called after dragging has ended, allowing you to detect if the drag was outside
+- (void)draggingEnded:(id<NSDraggingInfo>)sender
+{
+    NSPoint dropLocation = [sender draggingLocation];
+    BOOL isInsideDockGroup = NSPointInRect(dropLocation, self.frame);
+
+    NSPasteboard *pasteboard = [sender draggingPasteboard];
+    if ([[pasteboard types] containsObject:NSFilenamesPboardType]) {
+        NSArray *draggedFilenames = [[sender draggingPasteboard] propertyListForType:NSFilenamesPboardType];
+        NSString *appBundleName = [[[draggedFilenames objectAtIndex:0] lastPathComponent] stringByDeletingPathExtension];
+        BOOL alreadyDocked = [self hasIcon:appBundleName];
+
+        if (alreadyDocked)
+        {
+          NSLog(@"App bundle %@ ended in DockGroup.", appBundleName);
+        }
+    }
+
+    // Handle DockIcon drags
+    if ([[pasteboard types] containsObject:NSStringPboardType]) {        
+        NSString *appName = [pasteboard stringForType:NSStringPboardType];
+        BOOL alreadyDocked = [self hasIcon:appName];
+
+        if (alreadyDocked)
+        {
+          NSLog(@"DockIcon %@ ended in DockGroup.", appName);
+        }
+    }
+    
+}
+
+// Get ready to drop
+- (BOOL)prepareForDragOperation:(id<NSDraggingInfo>)sender {
+    NSPasteboard *pasteboard = [sender draggingPasteboard];
+    if ([[pasteboard types] containsObject:NSFilenamesPboardType])
+      {
+        NSLog(@"Preparing to drop DockIcon");
+        return YES;
+      }
+    if ([[pasteboard types] containsObject:NSStringPboardType])
+      {
+        NSLog(@"Preparing to drop DockIcon");
+        return YES;
+      }
+    return NO;
+}
+
+
+// Perform the drop operation
+- (BOOL)performDragOperation:(id<NSDraggingInfo>)sender
+{
+    NSPasteboard *pasteboard = [sender draggingPasteboard];
+    NSLog(@"App Drop method");
+
+    // For app bundles from file manager
+    if ([[pasteboard types] containsObject:NSFilenamesPboardType])
+    {
+      NSArray *draggedFilenames = [[sender draggingPasteboard] propertyListForType:NSFilenamesPboardType];
+      NSString *appName = [[[draggedFilenames objectAtIndex:0] lastPathComponent] stringByDeletingPathExtension];
+      BOOL alreadyDocked = [self hasIcon:appName];
+  
+      if (self.acceptsIcons && [[[draggedFilenames objectAtIndex:0] pathExtension] isEqual:@"app"] && !alreadyDocked)
+      {
+        NSLog(@"App Bundle %@ dropped to Dock", appName);     
+        // Post a notification when an App bundle is dropped onto dockedGroup
+        [[NSNotificationCenter defaultCenter] postNotificationName:@"DockIconDroppedNotification"
+                                                            object:self
+                                                          userInfo:@{@"appName": appName}];
+          return YES;
+      } else {
+        NSLog(@"App Drop not allowed in this icon group");
+          return NO;
+      }
+    }
+
+    // Check for DockIcon drops (NSStringPboardType)
+    if ([[pasteboard types] containsObject:NSStringPboardType]) {
+        NSString *appName = [pasteboard stringForType:NSStringPboardType];
+        BOOL alreadyDocked = [self hasIcon:appName];
+
+        if (!alreadyDocked) {
+            NSLog(@"DockIcon %@ Dropped to DockGroup", appName);
+            // Get the app icon and add it to the dock
+            NSImage *appIcon = [self.workspace iconForFile:[self.workspace absolutePathForAppBundleWithIdentifier:appName]];
+            [self addIcon:appName withImage:appIcon];
+            return YES;
+        } else {
+            NSLog(@"DockIcon %@ is already in the dock", appName);
+        }
+    }
+
+  
     return NO;
 }
 
 // Provide feedback as the dragging session progresses
-- (NSDragOperation)draggingUpdated:(id<NSDraggingInfo>)sender {
+- (NSDragOperation)draggingUpdated:(id<NSDraggingInfo>)sender
+{
     return NSDragOperationMove;
 }
 @end

@@ -2,13 +2,14 @@
 #import <AppKit/AppKit.h>
 #import "ActiveLight.h"
 
-@interface DockIcon : NSButton 
+@interface DockIcon : NSButton <NSDraggingSource>
 
 @property CGFloat iconSize;
 @property CGFloat activeLightDiameter;;
 @property (strong) NSImage *iconImage;
 @property (strong) NSString *appName;
 @property  BOOL showLabel;
+@property  BOOL isDragging;
 @property (strong) NSWorkspace *workspace;
 @property (strong) ActiveLight *activeLight;
 

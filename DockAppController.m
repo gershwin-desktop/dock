@@ -153,6 +153,7 @@
         self.dockedGroup = [[DockGroup alloc] init];  
         self.dockedGroup.iconSize = self.iconSize;
         self.dockedGroup.acceptsIcons = YES;
+        [self.dockedGroup setGroupName:@"DockedGroup"];
         [[self.dockWindow contentView] addSubview:self.dockedGroup];
 
         // Fetch Docked Apps from Prefs 
@@ -163,6 +164,7 @@
     {
         self.runningGroup = [[DockGroup alloc] init];  
         self.runningGroup.iconSize = self.iconSize;
+        [self.runningGroup setGroupName:@"RunningGroup"];
         [[self.dockWindow contentView] addSubview:self.runningGroup];
     }
 

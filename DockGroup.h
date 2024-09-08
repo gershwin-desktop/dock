@@ -19,6 +19,7 @@
 @property CGFloat padding;
 
 // Group Properties
+@property (strong) NSString *groupName;
 @property (strong) NSString *acceptedType;
 @property BOOL acceptsIcons;
 @property BOOL canDragReorder;
@@ -45,6 +46,10 @@
 - (CGFloat)calculateDockWidth;
 - (DockIcon *)getIconByName:(NSString *)appName;
 - (void)updateIconPositions:(NSUInteger)startIndex expandDock:(BOOL)isExpanding;
+
+// Getters & Setters
+- (NSString *) getGroupName;
+- (void) setGroupName:(NSString *)groupName;
 
 @end
 
