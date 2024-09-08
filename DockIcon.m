@@ -11,7 +11,7 @@
 
     if (self)
       {
-          // _iconImage = nil;
+          _iconImage = nil;
           _appName = @"Unknown";
           _showLabel = YES; // Change this to NO 
           _activeLight = nil; // Change this to NO 
@@ -69,9 +69,56 @@
     [super setToolTip:_appName]; 
 }
 
+- (NSImage *) getIconImage
+{
+  return _iconImage;
+}
+
+- (void) setIconImage:(NSImage *)iconImage
+{
+    _iconImage = iconImage;
+    [self setNeedsDisplay:YES];
+}
+
 - (void) selfDestruct
 {
     [self removeFromSuperview];
+}
+
+- (void)drawRect:(NSRect)dirtyRect
+{
+    [super drawRect:dirtyRect];
+
+    if (self.iconImage)
+    {
+        // Define the fixed size for the image: 64x64 pixels
+        CGFloat iconSize = 64;
+        NSSize fixedSize = NSMakeSize(iconSize, iconSize);
+
+        // Calculate the position to center the image in the view
+        NSRect bounds = self.bounds;
+        CGFloat xPosition = (NSWidth(bounds) - fixedSize.width) / 2;
+        CGFloat yPosition = (NSHeight(bounds) - fixedSize.height) / 2;
+        NSRect imageRect = NSMakeRect(xPosition, yPosition, fixedSize.width, fixedSize.height);
+
+        // Save the current graphics state
+        [[NSGraphicsContext currentContext] saveGraphicsState];
+
+        // Apply a vertical flip transformation to fix the upside-down image issue
+        NSAffineTransform *transform = [NSAffineTransform transform];
+        [transform translateXBy:0 yBy:NSHeight(bounds)];
+        [transform scaleXBy:1.0 yBy:-1.0];
+        [transform concat];
+
+        // Draw the iconImage within the fixed 64x64 rect
+        [self.iconImage drawInRect:imageRect
+                          fromRect:NSZeroRect
+                         operation:NSCompositeSourceOver  // Use NSCompositeSourceOver for GNUstep
+                          fraction:1.0];
+
+        // Restore the previous graphics state
+        [[NSGraphicsContext currentContext] restoreGraphicsState];
+    }
 }
 
 
@@ -110,6 +157,12 @@
     
     // Set some identifier or app name for the dragged item
     [pasteboard setString:self.appName forType:NSStringPboardType];
+
+    // Ensure that iconImage is set before dragging
+    if (!self.iconImage) {
+        NSLog(@"No iconImage set for DockIcon");
+        return;
+    }
 
     // Create a drag image (optional: you can customize it to your needs)
     // NSImage *dragImage = [self createDragImage];

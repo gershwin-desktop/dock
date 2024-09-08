@@ -19,7 +19,7 @@
         _showPlaces = NO;
         
         _workspace = [NSWorkspace sharedWorkspace];  // Initialize the workspace property with the shared instance
-        _iconSize = 72;
+        _iconSize = 96;
         _activeLight = 10;
         _padding = 16;
 

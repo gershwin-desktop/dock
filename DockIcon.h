@@ -15,9 +15,9 @@
 
 - (void)setLabelVisibility:(BOOL)isVisible;
 
-// - (NSImage *)getIconImage;
+- (NSImage *)getIconImage;
 
-// - (void)setIconImage:(NSImage *)iconImage;
+- (void)setIconImage:(NSImage *)iconImage;
 
 - (NSString *)getAppName;
 
