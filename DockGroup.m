@@ -206,6 +206,7 @@
     CGFloat iconCount = [self.dockedIcons count];
     NSRect location = [self generateLocation:_dockPosition atIndex:iconCount]; 
     DockIcon *iconButton = [[DockIcon alloc] initWithFrame:location];
+    [iconButton setIconSize:self.iconSize];
     [iconButton setIconImage:iconImage];
     [iconButton setAppName:appName];
     [iconButton setBordered:NO];

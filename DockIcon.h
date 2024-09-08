@@ -4,6 +4,8 @@
 
 @interface DockIcon : NSButton 
 
+@property CGFloat iconSize;
+@property CGFloat activeLightDiameter;;
 @property (strong) NSImage *iconImage;
 @property (strong) NSString *appName;
 @property  BOOL showLabel;
@@ -18,6 +20,10 @@
 - (NSImage *)getIconImage;
 
 - (void)setIconImage:(NSImage *)iconImage;
+
+- (CGFloat)getIconSize;
+
+- (void)setIconSize:(CGFloat)iconSize;
 
 - (NSString *)getAppName;
 

@@ -5,16 +5,20 @@
 
 @implementation DockIcon
 
+NSPoint initialDragLocation;  // Declare instance variable inside @implementation
+
 - (instancetype) initWithFrame:(NSRect)frameRect
 {
     self = [super initWithFrame:frameRect];
 
     if (self)
       {
+          _iconSize = 64;
           _iconImage = nil;
           _appName = @"Unknown";
           _showLabel = YES; // Change this to NO 
-          _activeLight = nil; // Change this to NO 
+          _activeLight = nil; // Change this to NO
+          _activeLightDiameter = 4.0;
   
         [self setupDockIcon];
       }
@@ -27,15 +31,14 @@
     [super setToolTip:_appName];
 
     // Calculate the frame for the ActiveLight view
-    CGFloat lightDiameter = 4.0;
     NSRect bounds = [self bounds];
     // bounds.size.height += 4;
 
     // Calculate the x and y position to center the ActiveLight horizontally and place it at the bottom
-    CGFloat xPosition = NSMidX(bounds) - (lightDiameter / 2.0);
+    CGFloat xPosition = NSMidX(bounds) - (self.activeLightDiameter / 2.0);
     CGFloat yPosition = bounds.size.height - 4;  // Set a small margin from the bottom edge
 
-    NSRect activeLightFrame = NSMakeRect(xPosition, yPosition, lightDiameter, lightDiameter);
+    NSRect activeLightFrame = NSMakeRect(xPosition, yPosition, self.activeLightDiameter, self.activeLightDiameter);
     
     // Instantiate the ActiveLight view
     _activeLight = [[ActiveLight alloc] initWithFrame:activeLightFrame];
@@ -80,6 +83,18 @@
     [self setNeedsDisplay:YES];
 }
 
+- (CGFloat) getIconSize
+{
+  return _iconSize;
+}
+
+- (void) setIconSize:(CGFloat)iconSize
+{
+  // We actually make ths icon size a little smaller to account for the activity light
+  _iconSize = iconSize * 0.75;
+  [self setNeedsDisplay:YES];
+}
+
 - (void) selfDestruct
 {
     [self removeFromSuperview];
@@ -90,10 +105,8 @@
     [super drawRect:dirtyRect];
 
     if (self.iconImage)
-    {
-        // Define the fixed size for the image: 64x64 pixels
-        CGFloat iconSize = 64;
-        NSSize fixedSize = NSMakeSize(iconSize, iconSize);
+    {        
+        NSSize fixedSize = NSMakeSize(self.iconSize, self.iconSize);
 
         // Calculate the position to center the image in the view
         NSRect bounds = self.bounds;
@@ -131,6 +144,9 @@
     [[NSNotificationCenter defaultCenter] postNotificationName:@"DockIconClickedNotification"
                                                         object:self
                                                       userInfo:@{@"appName": self.appName}];
+
+    // Capture the initial drag location (in window coordinates)
+    initialDragLocation = [event locationInWindow];
 }
 
 - (void)mouseUp:(NSEvent *)event {
@@ -166,18 +182,75 @@
 
     // Create a drag image (optional: you can customize it to your needs)
     // NSImage *dragImage = [self createDragImage];
-    NSPoint dragPosition = [self convertPoint:[event locationInWindow] fromView:nil];
+    // NSPoint dragPosition = [self convertPoint:[event locationInWindow] fromView:nil];
     NSLog(@"DockIcon is Dragging...");
     
     // Initiate the drag operation
-    [self dragImage:self.iconImage
+    /*[self dragImage:self.iconImage
                  at:dragPosition
              offset:NSZeroSize
               event:event
          pasteboard:pasteboard
              source:self
           slideBack:NO];  // No sliding back, as we'll remove the icon if dragged out
+    */
 
+
+    /*NSPoint currentLocation = [event locationInWindow];
+    
+    // Calculate the new frame position by finding the difference between current and initial drag location
+    CGFloat deltaX = currentLocation.x - initialDragLocation.x;
+    CGFloat deltaY = currentLocation.y - initialDragLocation.y;
+
+    // Get the current frame and adjust its origin based on the delta
+    NSRect frame = [self frame];
+    frame.origin.x += deltaX;
+    frame.origin.y += deltaY;
+
+    // Set the new frame (move the view)
+    [self setFrame:frame];
+
+    // Update the initialDragLocation for the next movement
+    initialDragLocation = currentLocation;*/
+
+        NSPoint dragLocation = [event locationInWindow];
+
+    // Create a temporary window for the drag
+    NSWindow *dragWindow = [[NSWindow alloc] initWithContentRect:NSMakeRect(dragLocation.x, dragLocation.y, self.iconSize, self.iconSize)
+                                                       styleMask:NSWindowStyleMaskBorderless
+                                                         backing:NSBackingStoreBuffered
+                                                           defer:NO];
+    
+    [dragWindow setOpaque:NO];
+    [dragWindow setBackgroundColor:[NSColor clearColor]];
+
+    // Create an NSImageView to hold the icon image
+    NSImageView *imageView = [[NSImageView alloc] initWithFrame:NSMakeRect(0, 0, self.iconSize, self.iconSize)];
+    [imageView setImage:self.iconImage];
+
+    [dragWindow.contentView addSubview:imageView];
+
+    // Make the window visible
+    [dragWindow makeKeyAndOrderFront:nil];
+
+    // Move the window as the user drags the mouse
+    while ([event type] != NSEventTypeLeftMouseUp) {
+        // NSPoint newDragLocation = [event locationInWindow];
+        NSPoint newDragLocation = [NSEvent mouseLocation];
+        NSRect windowFrame = [dragWindow frame];
+        windowFrame.origin.x = newDragLocation.x;
+        windowFrame.origin.y = newDragLocation.y;
+        [dragWindow setFrame:windowFrame display:YES];
+
+        // Get the next event (match for left mouse dragging or mouse up)
+        event = [[self window] nextEventMatchingMask:NSEventMaskFromType(NSEventTypeLeftMouseDragged) |
+                                                    NSEventMaskFromType(NSEventTypeLeftMouseUp)];
+    }
+
+    // After the drag ends, remove the window
+    [dragWindow close];
+
+    [self setNeedsDisplay:YES];
 }
 
 
