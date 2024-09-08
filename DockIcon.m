@@ -163,8 +163,7 @@ NSPoint initialDragLocation;  // Declare instance variable inside @implementatio
 
 // - (void)startExternalDragOnEvent:(NSEvent *)event
 - (void)mouseDragged:(NSEvent *)event
-{
-    // [super mouseDragged:event];
+{ 
     NSLog(@"DockIcon MouseDragged EVENT");
 
     // Prepare the pasteboard for dragging the DockIcon
@@ -180,40 +179,9 @@ NSPoint initialDragLocation;  // Declare instance variable inside @implementatio
         return;
     }
 
-    // Create a drag image (optional: you can customize it to your needs)
-    // NSImage *dragImage = [self createDragImage];
-    // NSPoint dragPosition = [self convertPoint:[event locationInWindow] fromView:nil];
     NSLog(@"DockIcon is Dragging...");
-    
-    // Initiate the drag operation
-    /*[self dragImage:self.iconImage
-                 at:dragPosition
-             offset:NSZeroSize
-              event:event
-         pasteboard:pasteboard
-             source:self
-          slideBack:NO];  // No sliding back, as we'll remove the icon if dragged out
-    */
 
-
-    /*NSPoint currentLocation = [event locationInWindow];
-    
-    // Calculate the new frame position by finding the difference between current and initial drag location
-    CGFloat deltaX = currentLocation.x - initialDragLocation.x;
-    CGFloat deltaY = currentLocation.y - initialDragLocation.y;
-
-    // Get the current frame and adjust its origin based on the delta
-    NSRect frame = [self frame];
-    frame.origin.x += deltaX;
-    frame.origin.y += deltaY;
-
-    // Set the new frame (move the view)
-    [self setFrame:frame];
-
-    // Update the initialDragLocation for the next movement
-    initialDragLocation = currentLocation;*/
-
-        NSPoint dragLocation = [event locationInWindow];
+    NSPoint dragLocation = [event locationInWindow];
 
     // Create a temporary window for the drag
     NSWindow *dragWindow = [[NSWindow alloc] initWithContentRect:NSMakeRect(dragLocation.x, dragLocation.y, self.iconSize, self.iconSize)
@@ -252,18 +220,6 @@ NSPoint initialDragLocation;  // Declare instance variable inside @implementatio
 
     [self setNeedsDisplay:YES];
 }
-
-
-/*- (NSImage *)createDragImage {
-    //NSImage *image = self.iconImage; // [[NSImage alloc] initWithSize:self.bounds.size];
-    //[image lockFocus];
-    //[[NSColor redColor] setFill];  // Example: a red square as a drag image
-    //NSRectFill(self.bounds);
-    //[image unlockFocus];
-    // return image;
-    return self.iconImage;
-}*/
-
 
 @end
 
