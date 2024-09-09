@@ -66,6 +66,11 @@
                                                  selector:@selector(iconAddedToGroup:)
                                                      name:@"DockIconAddedToGroup"
                                                    object:nil];
+        // Register to listen for DockGroup updates
+        [[NSNotificationCenter defaultCenter] addObserver:self
+                                                 selector:@selector(iconRemovedFromWindow:)
+                                                     name:@"DockIconRemovedFromWindowNotification"
+                                                   object:nil];
         
         [self setupDockWindow];
       }
@@ -158,7 +163,15 @@
       {
         self.dockedGroup = [[DockGroup alloc] init];  
         self.dockedGroup.iconSize = self.iconSize;
+
+        // Permissions
+        self.dockedGroup.acceptedType = @"Application";
         self.dockedGroup.acceptsIcons = YES;
+        self.dockedGroup.canDragReorder = YES;
+        self.dockedGroup.canDragRemove = YES;
+        self.dockedGroup.canDragMove = YES;
+        self.dockedGroup.screenEdge = self.dockPosition;
+
         [self.dockedGroup setGroupName:@"DockedGroup"];
         [[self.dockWindow contentView] addSubview:self.dockedGroup];
 
@@ -170,6 +183,15 @@
     {
         self.runningGroup = [[DockGroup alloc] init];  
         self.runningGroup.iconSize = self.iconSize;
+
+        // Permissions
+        self.runningGroup.acceptedType = @"Application";
+        self.runningGroup.acceptsIcons = NO;
+        self.runningGroup.canDragReorder = NO;
+        self.runningGroup.canDragRemove = NO;
+        self.runningGroup.canDragMove = YES;
+        self.runningGroup.screenEdge = self.dockPosition;
+
         [self.runningGroup setGroupName:@"RunningGroup"];
         [[self.dockWindow contentView] addSubview:self.runningGroup];
     }
@@ -307,9 +329,26 @@
         {
           [self.dockedGroup setIconActive:runningAppName];
         } else if (!isDocked && self.showRunning && self.runningGroup) {
-          NSLog(@"Finding undockedIcon for %@", runningAppName);
+          NSLog(@"Finding undockedIcon for %@ at index %lu", runningAppName, (long)[self.runningGroup indexOfIcon:runningAppName]);
       }
     }
+}
+
+- (BOOL) isAppRunning:(NSString *)appName
+{
+  NSArray *runningApps = [self.workspace launchedApplications];
+  NSLog(@"Is app running method...");
+  for (int i = 0; i < [runningApps count]; i++)
+    {      
+      NSString *runningAppName = [[runningApps objectAtIndex: i] objectForKey: @"NSApplicationName"];
+      if ([runningAppName isEqualToString:appName])
+        {
+          NSLog(@"%@ is running", runningAppName);
+          return YES;
+        }
+    }
+
+  return NO;
 }
 
 // Events
@@ -367,6 +406,48 @@
       {
         [self updateDockWindow];
       }
+}
+
+- (void) iconRemovedFromWindow:(NSNotification *)notification
+{
+    NSString *appName = notification.userInfo[@"appName"];
+    NSString *groupName = notification.userInfo[@"groupName"];
+
+    DockGroup *dockGroup = nil;
+    if ([groupName isEqualToString:[self.dockedGroup getGroupName]])
+      {
+        dockGroup = self.dockedGroup;
+      } else if ([groupName isEqualToString:[self.runningGroup getGroupName]])
+      {
+        dockGroup = self.runningGroup;
+      } else if ([groupName isEqualToString:[self.placesGroup getGroupName]])
+      {
+        dockGroup = self.placesGroup;
+      }
+
+      if (dockGroup.canDragRemove)
+        {
+          NSLog(@"App %@ can be removed from group %@...", appName, groupName);
+          [dockGroup removeIcon:appName];
+          [dockGroup updateFrame];
+          //[self checkForNewActivatedIcons];
+        }
+      
+      // If it's in the running group then remove it
+      BOOL isRunning = [self isAppRunning:appName];
+      if (self.showRunning && self.runningGroup && isRunning)
+        {       
+          NSLog(@"App %@ is to be removed from the running group ...", appName);
+          NSImage *appImage = [self.workspace appIconForApp:appName];
+          [self.runningGroup addIcon:appName withImage:appImage];
+          [self.runningGroup setIconActive:appName];               
+        }
+     
+      [self checkForNewActivatedIcons];
+      if (_isUnified)
+        {
+          [self updateDockWindow];
+        }
 }
 
 - (void) iconClicked:(NSNotification *)notification

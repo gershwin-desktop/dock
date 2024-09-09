@@ -31,25 +31,27 @@
 @property (strong) NSWorkspace *workspace;
 
 // Icon Management
-- (DockIcon *)generateIcon:(NSString *)appName withImage:(NSImage *)iconImage;
-- (NSRect)generateLocation:(NSString *)dockPosition atIndex:(CGFloat)index;
-- (NSMutableArray *)listIconNames;
-- (DockIcon *)addIcon:(NSString *)appName withImage:(NSImage *)iconImage;
-- (void)removeIcon:(NSString *)appName;
+- (DockIcon *) generateIcon:(NSString *)appName withImage:(NSImage *)iconImage;
+- (NSRect) generateLocation:(NSString *)dockPosition atIndex:(CGFloat)index;
+- (NSMutableArray *) listIconNames;
+- (DockIcon *) addIcon:(NSString *)appName withImage:(NSImage *)iconImage;
+- (void) removeIcon:(NSString *)appName;
 
 // Movers & Helpers
-- (BOOL)hasIcon:(NSString *)appName;
-- (void)setIconActive:(NSString *)appName;
-- (void)setIconTerminated:(NSString *)appName;
-- (NSUInteger)indexOfIcon:(NSString *)appName;
+- (BOOL) hasIcon:(NSString *)appName;
+- (void) setIconActive:(NSString *)appName;
+- (void) setIconTerminated:(NSString *)appName;
+- (NSUInteger) indexOfIcon:(NSString *)appName;
+- (BOOL) isAppRunning:(NSString *)appName;
+- (void) updateFrame;
 
-- (CGFloat)calculateDockWidth;
-- (DockIcon *)getIconByName:(NSString *)appName;
-- (void)updateIconPositions:(NSUInteger)startIndex expandDock:(BOOL)isExpanding;
+- (CGFloat) calculateDockWidth;
+- (DockIcon *) getIconByName:(NSString *)appName;
+- (void) updateIconPositions:(NSUInteger)startIndex expandDock:(BOOL)isExpanding;
 
 // Getters & Setters
-- (NSString *) getGroupName;
-- (void) setGroupName:(NSString *)groupName;
+- (NSString *)  getGroupName;
+- (void)  setGroupName:(NSString *)groupName;
 
 @end
 

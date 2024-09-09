@@ -1,5 +1,6 @@
 #import <Foundation/Foundation.h>
 #import <AppKit/AppKit.h>
+#import "DockGroup.h"
 #import "DockIcon.h"
 #import "ActiveLight.h"
 
@@ -22,6 +23,7 @@ NSPoint initialDragLocation;  // Declare instance variable inside @implementatio
           _activeLightDiameter = 4.0;
 
           _isDragging = NO;
+          _isDragEnabled = NO;
   
         [self setupDockIcon];
       }
@@ -158,6 +160,12 @@ NSPoint initialDragLocation;  // Declare instance variable inside @implementatio
 
 - (void)mouseDragged:(NSEvent *)event
 { 
+  if (!self.isDragEnabled)
+    {
+      NSLog(@"Parent group does not allow movement");
+      return;
+    }
+
     NSLog(@"DockIcon MouseDragged EVENT");
 
     _isDragging = YES;
@@ -226,13 +234,6 @@ NSPoint initialDragLocation;  // Declare instance variable inside @implementatio
                                                     NSEventMaskFromType(NSEventTypeLeftMouseUp)];
     }
 
-        // Check if the screen point is inside this window's frame
-        if (NSPointInRect(newDragLocation, [[self window] frame]))
-          {
-            NSLog(@"Inside"); 
-          } else {
-            NSLog(@"Outside"); 
-          }
 
     // After the drag ends, remove the window
     [dragWindow close];
@@ -249,6 +250,24 @@ NSPoint initialDragLocation;  // Declare instance variable inside @implementatio
     
     _isDragging = NO;
     [self setHidden:NO];
+
+    // Check if the screen point is inside this window's frame
+    if (NSPointInRect(newDragLocation, [[self window] frame]))
+      {
+        NSLog(@"Inside"); 
+      } else {
+        DockGroup *parentView = (DockGroup *)self.superview; // Need this because compiler thinks this references NSView
+        NSString *gName = [parentView getGroupName];
+        // NSLog(@"Outside");
+        NSLog(@"Outside of %@", gName);
+        [[NSNotificationCenter defaultCenter] postNotificationName:@"DockIconRemovedFromWindowNotification"
+                                                            object:self
+                                                          userInfo:@{
+                                                        @"appName": self.appName,
+                                                        @"groupName": [parentView getGroupName]
+                                                          }];        
+      }
+
     [self setNeedsDisplay:YES];
 }
 
@@ -263,36 +282,6 @@ NSPoint initialDragLocation;  // Declare instance variable inside @implementatio
 {
     return YES; // Optional, but can simplify drag handling
 }
-
-- (void)draggingSession:(NSDraggingSession *)session endedAtPoint:(NSPoint)screenPoint operation:(NSDragOperation)operation
-{
-    NSLog(@"Dragging ended at point: %@", NSStringFromPoint(screenPoint));
-
-    BOOL isOutsideApp = YES; // Assume the point is outside
-
-    // Iterate through all application windows to check if the point is within any window frame
-    for (NSWindow *window in [NSApplication sharedApplication].windows) {
-        NSRect windowFrame = [window frame];
-
-        // Check if the screen point is inside this window's frame
-        if (NSPointInRect(screenPoint, windowFrame)) {
-            isOutsideApp = NO;
-            break;  // No need to check further, the point is inside a window
-        }
-    }
-
-    if (isOutsideApp) {
-        NSLog(@"The drag operation ended outside the application.");
-        if (operation == NSDragOperationDelete) {
-            NSLog(@"The item was deleted.");
-        }
-    } else {
-        NSLog(@"The drag operation ended inside the application.");
-    }
-
-    NSLog(@"Final drag operation: %lu", operation);
-}
-
 
 // Do we need this still?
 - (NSImage *)drawImage:(NSImage *)image withSize:(NSSize)size

@@ -32,6 +32,13 @@
         _iconSize = 64;
         _activeLight = 10;
         _padding = 16;
+
+        _acceptedType = @"Application";
+        _acceptsIcons = NO;
+        _canDragReorder = NO;
+        _canDragRemove = NO;
+        _canDragMove = NO;
+        _screenEdge = nil; // set by DockAppController
       }
     return self;
 }
@@ -69,7 +76,7 @@
     NSRect newFrame = NSMakeRect(currentFrame.origin.x, 0, newContentSize.width, newContentSize.height);
 
     [self setFrame:newFrame]; 
-    // [self setNeedsDisplay:YES];
+    [self setNeedsDisplay:YES];
 }
 
 - (void) updateIconPositions:(NSUInteger)startIndex
@@ -222,6 +229,7 @@
     [iconButton setIconImage:iconImage];
     [iconButton setAppName:appName];
     [iconButton setBordered:NO];
+    iconButton.isDragEnabled = self.canDragMove;
 
     return iconButton;
 }

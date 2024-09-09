@@ -11,6 +11,7 @@
 @property (strong) NSString *appName;
 @property  BOOL showLabel;
 @property  BOOL isDragging;
+@property  BOOL isDragEnabled;
 @property (strong) NSWorkspace *workspace;
 @property (strong) ActiveLight *activeLight;
 

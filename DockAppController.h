@@ -31,6 +31,7 @@
 - (void)iconClicked:(NSNotification *)notification;
 - (void)iconDropped:(NSNotification *)notification;
 - (void)iconAddedToGroup:(NSNotification *)notification;
+- (void)iconRemovedFromWindow:(NSNotification *)notification;
 
 // Workspace Events
 - (void)applicationIsLaunching:(NSNotification *)notification;
