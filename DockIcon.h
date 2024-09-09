@@ -6,6 +6,7 @@
 
 @property CGFloat iconSize;
 @property CGFloat activeLightDiameter;;
+@property CGFloat iconSizeMultiplier;
 @property (strong) NSImage *iconImage;
 @property (strong) NSString *appName;
 @property  BOOL showLabel;
