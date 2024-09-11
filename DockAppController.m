@@ -431,23 +431,23 @@
           [dockGroup removeIcon:appName];
           [dockGroup updateFrame];
           //[self checkForNewActivatedIcons];
-        }
       
-      // If it's in the running group then remove it
-      BOOL isRunning = [self isAppRunning:appName];
-      if (self.showRunning && self.runningGroup && isRunning)
-        {       
-          NSLog(@"App %@ is to be removed from the running group ...", appName);
-          NSImage *appImage = [self.workspace appIconForApp:appName];
-          [self.runningGroup addIcon:appName withImage:appImage];
-          [self.runningGroup setIconActive:appName];               
-        }
-     
-      [self checkForNewActivatedIcons];
-      if (_isUnified)
-        {
-          [self updateDockWindow];
-        }
+        // If it's in the running group then remove it
+        BOOL isRunning = [self isAppRunning:appName];
+        if (self.showRunning && self.runningGroup && isRunning)
+          {       
+            NSLog(@"App %@ is to be removed from the running group ...", appName);
+            NSImage *appImage = [self.workspace appIconForApp:appName];
+            [self.runningGroup addIcon:appName withImage:appImage];
+            [self.runningGroup setIconActive:appName];               
+          }
+       
+        [self checkForNewActivatedIcons];
+        if (_isUnified)
+          {
+            [self updateDockWindow];
+          }
+      }
 }
 
 - (void) iconClicked:(NSNotification *)notification

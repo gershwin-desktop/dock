@@ -37,7 +37,6 @@ NSPoint initialDragLocation;  // Declare instance variable inside @implementatio
 
     // Calculate the frame for the ActiveLight view
     NSRect bounds = [self bounds];
-    // bounds.size.height += 4;
 
     // Calculate the x and y position to center the ActiveLight horizontally and place it at the bottom
     CGFloat xPosition = NSMidX(bounds) - (self.activeLightDiameter / 2.0);
@@ -251,12 +250,13 @@ NSPoint initialDragLocation;  // Declare instance variable inside @implementatio
     _isDragging = NO;
     [self setHidden:NO];
 
+    DockGroup *parentView = (DockGroup *)self.superview; // Need this because compiler thinks this references NSView
     // Check if the screen point is inside this window's frame
     if (NSPointInRect(newDragLocation, [[self window] frame]))
       {
         NSLog(@"Inside"); 
-      } else {
-        DockGroup *parentView = (DockGroup *)self.superview; // Need this because compiler thinks this references NSView
+      } else if (!NSPointInRect(newDragLocation, [[self window] frame]) && parentView.canDragRemove)
+      {
         NSString *gName = [parentView getGroupName];
         // NSLog(@"Outside");
         NSLog(@"Outside of %@", gName);
