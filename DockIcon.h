@@ -15,6 +15,10 @@
 @property (strong) NSWorkspace *workspace;
 @property (strong) ActiveLight *activeLight;
 
+// Define properties to store target and actions
+@property (nonatomic, weak) id target;
+@property (nonatomic) SEL mouseUpAction;
+
 
 - (void)setupDockIcon;
 

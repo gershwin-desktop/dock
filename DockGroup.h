@@ -2,7 +2,11 @@
 #import <AppKit/AppKit.h>
 #import "DockIcon.h"
 
+@class DockAppController;  // Forward declaration
+
 @interface DockGroup : NSView 
+
+@property (nonatomic, weak) DockAppController *controller; // Required for Target-Action
 
 // Placement
 @property (strong) NSWindow *dockWindow;

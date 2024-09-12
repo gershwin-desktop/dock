@@ -22,6 +22,8 @@
 @property BOOL showRunning;
 @property BOOL showPlaces;
 
+@property DockGroup *dropTarget;
+
 // Dock Window Management
 - (void)setupDockWindow;
 - (void)updateDockWindow;
@@ -29,7 +31,8 @@
 // Icon Management
 - (void)addDivider;
 - (void)iconClicked:(NSNotification *)notification;
-- (void)iconDropped:(NSNotification *)notification;
+- (void)iconIsDragging:(NSNotification *)notification;
+- (void)iconDropped:(NSString *)appName inGroup:(DockGroup *)dockGroup;
 - (void)iconAddedToGroup:(NSNotification *)notification;
 - (void)iconRemovedFromWindow:(NSNotification *)notification;
 
@@ -42,11 +45,15 @@
 // Movers & Helpers
 - (void)checkForNewActivatedIcons;
 - (CGFloat)calculateDockWidth;
+- (BOOL)detectHover:(NSString *)appName inGroup:(DockGroup *)dockGroup currentX:(CGFloat)currentX currentY:(CGFloat)currentY;
 
 // Defaults
 - (void)resetDockedIcons;
 - (void)saveDockedIconsToUserDefaults:(BOOL)reset;
 - (void)loadDockedIconsFromUserDefaults;
+
+// Define methods that will handle events from DockIcon
+- (void)iconMouseUp:(id)sender;
 
 @end
 

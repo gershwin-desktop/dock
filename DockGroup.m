@@ -15,9 +15,6 @@
         [self registerForDraggedTypes:@[
           NSFilenamesPboardType,    // For file URLs
           NSStringPboardType // For our DockIcon instances
-          // NSPasteboardTypeString,     // For strings
-          //NSPasteboardTypeFileURL,    // For file URLs
-          // NSPasteboardTypeURL         // For generic URLs
         ]];
 
         _groupName = @"Unknown";
@@ -112,7 +109,6 @@
              withImage:(NSImage *)iconImage
 {
     // TODO: Animation Logic
-    // NSMutableArray *iconsArray = _dockedIcons;
     DockIcon *dockIcon = [self generateIcon:appName withImage:iconImage];
     [self.dockedIcons addObject:dockIcon];
     [self addSubview:dockIcon];
@@ -230,6 +226,10 @@
     [iconButton setAppName:appName];
     [iconButton setBordered:NO];
     iconButton.isDragEnabled = self.canDragMove;
+
+    // Set the DockAppController as the target for the DockIcon events
+    iconButton.target = self.controller;  // Reference to DockAppController
+    iconButton.mouseUpAction = @selector(iconMouseUp:);
 
     return iconButton;
 }
@@ -362,7 +362,7 @@
 - (BOOL)performDragOperation:(id<NSDraggingInfo>)sender
 {
     NSPasteboard *pasteboard = [sender draggingPasteboard];
-    NSLog(@"App Drop method");
+    NSLog(@"DOCKGROUP CALLBACK");
 
     // For app bundles from file manager
     if ([[pasteboard types] containsObject:NSFilenamesPboardType])
@@ -373,37 +373,13 @@
   
       if (self.acceptsIcons && [[[draggedFilenames objectAtIndex:0] pathExtension] isEqual:@"app"] && !alreadyDocked)
       {
-        NSLog(@"App Bundle %@ dropped to Dock", appName);     
-        // Post a notification when an App bundle is dropped onto dockedGroup
-        [[NSNotificationCenter defaultCenter] postNotificationName:@"DockIconDroppedNotification"
-                                                            object:self
-                                                          userInfo:@{@"appName": appName}];
-          return YES;
+        NSLog(@"DOCKGROUP METHOD: App Bundle %@ dropped to Dock", appName);     
+        [self.controller iconDropped:appName inGroup: self];
+        return YES;
       } else {
         NSLog(@"App Drop not allowed in this icon group");
           return NO;
       }
-    }
-
-    // Check for DockIcon drops (NSStringPboardType)
-    if (self.acceptsIcons && [[pasteboard types] containsObject:NSStringPboardType]) {
-        NSString *appName = [pasteboard stringForType:NSStringPboardType];
-        BOOL alreadyDocked = [self hasIcon:appName];
-
-        if (!alreadyDocked) {
-            NSLog(@"DockIcon %@ Dropped to DockGroup %@", appName, self.groupName);
-            // Notify the controller that an icon has been added to this group
-            [[NSNotificationCenter defaultCenter] postNotificationName:@"DockIconAddedToGroup"
-                                                                object:self
-                                                              userInfo:@{
-                                                            @"appName": appName,
-                                                                    @"groupName":[self getGroupName]
-                                                              }];
-
-            return YES;
-        } else {
-            NSLog(@"DockIcon %@ is already in the dock", appName);
-        }
     }
 
   
