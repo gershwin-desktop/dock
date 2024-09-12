@@ -7,8 +7,11 @@
 
 @property (strong) NSArray *defaultIcons;
 @property (strong) NSString *dockPosition;
+@property (strong) NSString *fileManagerAppName;
 @property (strong) NSWindow *dockWindow;
 @property (strong) NSWorkspace *workspace;
+
+@property (strong) DockGroup *fileManagerGroup;
 @property (strong) DockGroup *dockedGroup;
 @property (strong) DockGroup *runningGroup;
 @property (strong) DockGroup *placesGroup;
@@ -48,7 +51,7 @@
 
 // Defaults
 - (void)resetDockedIcons;
-- (void)saveDockedIconsToUserDefaults:(BOOL)reset;
+- (void)saveDockedIconsToUserDefaults;
 - (void)loadDockedIconsFromUserDefaults;
 
 // Define methods that will handle events from DockIcon

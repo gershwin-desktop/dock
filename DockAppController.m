@@ -11,7 +11,9 @@
     if (self)
       {
         _isUnified = YES;
-        _defaultIcons = [NSArray arrayWithObjects:@"Workspace", @"Terminal", @"SystemPreferences", nil];
+        _fileManagerAppName = @"Workspace";
+        _fileManagerGroup = nil;
+        _defaultIcons = [NSArray arrayWithObjects:/*@"Workspace",*/ @"Terminal", @"SystemPreferences", nil];
         _dockPosition = @"Bottom";
         
         _showDocked = YES;
@@ -89,24 +91,22 @@
     [defaults synchronize]; // Optional, to save changes immediately 
 }
 
-- (void) saveDockedIconsToUserDefaults:(BOOL)reset
+- (void) saveDockedIconsToUserDefaults
 {
     NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-    if (reset){
-      // Reset the local array to match user defaults
-      // NSMutableArray *newArray = [[NSMutableArray alloc] init];
-      // _dockedIcons = newArray;
-      for (int index = 0; index < [_defaultIcons count]; index ++) {
-        // [self addIcon:[_defaultIcons objectAtIndex:index] toDockedArray:YES];
-      }
-
-      // Reset the NSUserDefaults array
-      [defaults setObject:_defaultIcons forKey:@"DockedIcons"];
-      [defaults synchronize]; // Optional, to save changes immediately 
-    } else {
-      // Reset the local array to match app defaults
-      // [self resetDockedIcons]; // FIXME: Needs to save the docked icons list      
-    }
+    // Reset the local array to match user defaults
+    /*NSMutableArray *newArray = [[NSMutableArray alloc] init];
+    self.dockedGroup.dockedIcons = newArray;
+    for (int index = 0; index < [self.defaultIcons count]; index ++) {
+      NSString *appName = [self.defaultIcons objectectAtIndex:index];
+      [self.dockedGroup addIcon:appName withImage:[self.workspace appIconForApp:appName]];
+    }*/
+  
+    // Reset the NSUserDefaults array
+    NSMutableArray *appNames = [self.dockedGroup listIconNames];
+    NSLog(@"SAVE DOCK METHOD: APPNAMES = %@", appNames);
+    [defaults setObject:appNames forKey:@"DockedIcons"];
+    [defaults synchronize]; // Optional, to save changes immediately 
 }
 
 - (void) loadDockedIconsFromUserDefaults
@@ -156,6 +156,29 @@
   NSColor *semiTransparentColor = [NSColor colorWithCalibratedWhite:0.1 alpha:0.75];
   [self.dockWindow setBackgroundColor:semiTransparentColor];
 
+
+
+  if (self.fileManagerAppName)
+      {
+        self.fileManagerGroup = [[DockGroup alloc] init];  
+        self.fileManagerGroup.iconSize = self.iconSize;
+
+        // Permissions
+        self.fileManagerGroup.acceptedType = @"Application";
+        self.fileManagerGroup.acceptsIcons = NO;
+        self.fileManagerGroup.canDragReorder = NO;
+        self.fileManagerGroup.canDragRemove = NO;
+        self.fileManagerGroup.canDragMove = NO;
+        self.fileManagerGroup.screenEdge = self.dockPosition;
+        self.fileManagerGroup.controller = self;
+
+        [self.fileManagerGroup setGroupName:@"FileManagerGroup"];
+        [[self.dockWindow contentView] addSubview:self.fileManagerGroup];
+
+        // Fetch Docked Apps from Prefs 
+        [self.fileManagerGroup addIcon:self.fileManagerAppName withImage:[self.workspace appIconForApp:self.fileManagerAppName]];
+      }
+
   if (self.showDocked)
       {
         self.dockedGroup = [[DockGroup alloc] init];  
@@ -203,8 +226,12 @@
     {
       NSString *runningAppName = [[runningApps objectAtIndex: i] objectForKey: @"NSApplicationName"];  
       BOOL isDockIcon = [runningAppName isEqualToString:@"Dock"];
-      if (!isDockIcon && self.showDocked && self.dockedGroup)
+      BOOL isFileManagerIcon = [runningAppName isEqualToString:self.fileManagerAppName];
+      if (isFileManagerIcon)
         {
+          [self.fileManagerGroup setIconActive:runningAppName];
+          continue;
+        } else if (!isDockIcon && self.showDocked && self.dockedGroup) {
           BOOL dockedIconExists = [self.dockedGroup hasIcon:runningAppName];
           if (dockedIconExists)
             {
@@ -236,6 +263,9 @@
   NSLog(@"DockAppController: calculateDockWidth...");
   CGFloat totalIcons = 0;
 
+  // For the file manager
+  totalIcons += 1;
+
   if (self.showDocked && self.dockedGroup)
   {
     totalIcons += [[self.dockedGroup listIconNames] count];
@@ -254,6 +284,9 @@
     totalIcons += [[self.placesGroup listIconNames] count];
   }
 
+  // For the Trash Can
+  // totalIcons += 1;
+
   CGFloat dockWidth = (self.padding * 2) + (totalIcons * self.iconSize);
   return dockWidth;
 }
@@ -268,6 +301,16 @@
 
   // Adjust Groups
   CGFloat newGroupX = self.padding;
+  if (self.fileManagerGroup)
+  {
+    NSRect fileManagerFrame = [self.fileManagerGroup frame];
+    NSRect newDockedFrame = NSMakeRect(newGroupX, fileManagerFrame.origin.y, fileManagerFrame.size.width, fileManagerFrame.size.height);
+    [self.fileManagerGroup setFrame:newDockedFrame];
+
+    // Update X for next check
+    newGroupX += fileManagerFrame.size.width;
+  }
+
   if (self.showDocked && self.dockedGroup)
   {
     NSRect dockedFrame = [self.dockedGroup frame];
@@ -297,6 +340,15 @@
     newGroupX += placesFrame.size.width;
   }
 
+  /*if (self.trashGroup)
+  {
+    NSRect trashFrame = [self.trashGroup frame];
+    NSRect newDockedFrame = NSMakeRect(newGroupX, trashFrame.origin.y, trashFrame.size.width, trashFrame.size.height);
+    [self.trashGroup setFrame:newDockedFrame];
+
+    // Update X for next check
+    newGroupX += trashFrame.size.width;
+  }*/
 
   // Center on screen  
   NSScreen *mainScreen = [NSScreen mainScreen];
@@ -322,14 +374,17 @@
     {
       NSString *runningAppName = [[runningApps objectAtIndex: i] objectForKey: @"NSApplicationName"];
       BOOL isDockIcon = [runningAppName isEqualToString:@"Dock"];
+      BOOL isFileManagerIcon = [runningAppName isEqualToString:self.fileManagerAppName];
 
       BOOL isDocked = [self.dockedGroup hasIcon:runningAppName];
-      if (!isDockIcon && isDocked && self.showDocked)
+      if (isFileManagerIcon)
         {
+          [self.fileManagerGroup setIconActive:runningAppName];
+        } else if (!isDockIcon && isDocked && self.showDocked) {
           [self.dockedGroup setIconActive:runningAppName];
         } else if (!isDocked && self.showRunning && self.runningGroup) {
           NSLog(@"Finding undockedIcon for %@ at index %lu", runningAppName, (long)[self.runningGroup indexOfIcon:runningAppName]);
-      }
+        }
     }
 }
 
@@ -406,6 +461,11 @@
       {
         [self updateDockWindow];
       }
+
+    if([[self.dockedGroup getGroupName] isEqualToString:[dockGroup getGroupName]])
+      {
+        [self saveDockedIconsToUserDefaults];
+      }
 }
 
 // Drop source is from inside Dock app
@@ -455,6 +515,8 @@
           [self.dockedGroup setIconActive:appName];
         }
       }
+
+      [self saveDockedIconsToUserDefaults];
     }
     
     if (self.isUnified)
@@ -469,11 +531,14 @@
 {
     NSString *appName = notification.userInfo[@"appName"];
     NSString *groupName = notification.userInfo[@"groupName"];
+    BOOL isDockedGroup = NO;
 
+    // Group the icon is being removed from
     DockGroup *dockGroup = nil;
     if ([groupName isEqualToString:[self.dockedGroup getGroupName]])
       {
         dockGroup = self.dockedGroup;
+        isDockedGroup = YES;
       } else if ([groupName isEqualToString:[self.runningGroup getGroupName]])
       {
         dockGroup = self.runningGroup;
@@ -503,6 +568,12 @@
           {
             [self updateDockWindow];
           }
+
+        if(isDockedGroup)
+          {
+            [self saveDockedIconsToUserDefaults];
+          }
+
       }
 }
 
@@ -550,14 +621,21 @@
     NSString *appName = userInfo[@"NSApplicationName"];
     if (appName)
       {
-        if ([appName isEqualToString:@"Dock"])
+        if ([appName isEqualToString:@"Dock"]) 
         {
             return;
         }
+
+
+        if ([appName isEqualToString:self.fileManagerAppName])
+          {
+            [self.fileManagerGroup setIconActive: self.fileManagerAppName];
+            return;
+          }
   
-        //TODO  Manage the undocked list here
+        // Manage the undocked list here
         BOOL isDocked = _showDocked ? [self.dockedGroup hasIcon:appName] : NO;
-        if (_showDocked && isDocked)
+        if (self.showDocked && isDocked)
           {
             [self.dockedGroup setIconActive:appName];
           } else if (_showRunning && !isDocked) {
