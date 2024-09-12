@@ -160,6 +160,15 @@
 
   if (self.fileManagerAppName)
       {
+
+        // We use our own icon
+        // Get the path to the icon file from the Resources directory
+        NSString *iconImagePath = [[NSBundle mainBundle] pathForResource:@"FileManagerIcon" ofType:@"png"];
+
+        // Create an NSImage object from the .icns file
+        NSImage *appIcon = [[NSImage alloc] initWithContentsOfFile:iconImagePath];
+
+
         self.fileManagerGroup = [[DockGroup alloc] init];  
         self.fileManagerGroup.iconSize = self.iconSize;
 
@@ -176,7 +185,8 @@
         [[self.dockWindow contentView] addSubview:self.fileManagerGroup];
 
         // Fetch Docked Apps from Prefs 
-        [self.fileManagerGroup addIcon:self.fileManagerAppName withImage:[self.workspace appIconForApp:self.fileManagerAppName]];
+        //[self.fileManagerGroup addIcon:self.fileManagerAppName withImage:[self.workspace appIconForApp:self.fileManagerAppName]];
+        [self.fileManagerGroup addIcon:self.fileManagerAppName withImage:appIcon];
       }
 
   if (self.showDocked)
