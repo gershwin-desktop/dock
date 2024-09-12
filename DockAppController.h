@@ -30,7 +30,6 @@
 
 // Icon Management
 - (void)addDivider;
-- (void)iconClicked:(NSNotification *)notification;
 - (void)iconIsDragging:(NSNotification *)notification;
 - (void)iconDropped:(NSString *)appName inGroup:(DockGroup *)dockGroup;
 - (void)iconAddedToGroup:(NSNotification *)notification;

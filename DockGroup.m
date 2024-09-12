@@ -66,7 +66,7 @@
 {
     // Adjust the width
     CGFloat dockWidth = [self calculateDockWidth];
-    NSSize currentContentSize = [self frame].size;
+//    NSSize currentContentSize = [self frame].size;
    
     NSSize newContentSize = [_direction isEqualToString:@"Horizontal"] ? NSMakeSize(dockWidth, self.iconSize) : NSMakeSize(self.iconSize, dockWidth);
     NSRect currentFrame = [self frame]; 
@@ -88,7 +88,7 @@
   
         // Horizontal adjustments
         if([_dockPosition isEqualToString:@"Bottom"]) {
-          CGFloat startX = currentFrame.origin.x;
+//          CGFloat startX = currentFrame.origin.x;
   
           if(isExpanding){
             CGFloat expandedX = currentFrame.origin.x + _iconSize;          

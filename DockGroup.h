@@ -46,7 +46,6 @@
 - (void) setIconActive:(NSString *)appName;
 - (void) setIconTerminated:(NSString *)appName;
 - (NSUInteger) indexOfIcon:(NSString *)appName;
-- (BOOL) isAppRunning:(NSString *)appName;
 - (void) updateFrame;
 
 - (CGFloat) calculateDockWidth;

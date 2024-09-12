@@ -94,7 +94,7 @@
     NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
     if (reset){
       // Reset the local array to match user defaults
-      NSMutableArray *newArray = [[NSMutableArray alloc] init];
+      // NSMutableArray *newArray = [[NSMutableArray alloc] init];
       // _dockedIcons = newArray;
       for (int index = 0; index < [_defaultIcons count]; index ++) {
         // [self addIcon:[_defaultIcons objectAtIndex:index] toDockedArray:YES];
@@ -416,20 +416,27 @@
     if (!self.dropTarget)
       {
         NSLog(@"Drop Target is NIL");
+        self.dropTarget = nil;
+        return;
       } else if (!self.dropTarget.acceptsIcons)
       {
         NSString *targetName = [self.dropTarget getGroupName];
         NSLog(@"Drop Target %@ DOES NOT ACCEPT ICONS", targetName);
+        self.dropTarget = nil;
+        return;
       }
 
-    NSString *message = @"";
-    message = !self.dropTarget ? @"Drop Target is NIL" : @"DropTarget is NOT NIL";
-    NSLog(@"%@", message);
 
     NSString *appName = notification.userInfo[@"appName"];
-    NSString *parentGroupName = notification.userInfo[@"groupName"];
     NSString *groupName = [self.dropTarget getGroupName];
     BOOL isRunning = [self.runningGroup hasIcon:appName];
+
+    // Avoid Duplicates
+    if ([self.dropTarget hasIcon:appName])
+    {
+      self.dropTarget = nil;
+      return;
+    }
 
     NSLog(@"Controller: App %@ is being added to group %@", appName, groupName);
 
