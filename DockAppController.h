@@ -2,6 +2,7 @@
 #import <AppKit/AppKit.h>
 #import "DockGroup.h"
 #import "DockIcon.h"
+#import "DockDivider.h"
 
 @interface DockAppController : NSObject <NSApplicationDelegate>
 
@@ -12,9 +13,13 @@
 @property (strong) NSWorkspace *workspace;
 
 @property (strong) DockGroup *fileManagerGroup;
+@property (strong) DockGroup *trashGroup;
 @property (strong) DockGroup *dockedGroup;
 @property (strong) DockGroup *runningGroup;
 @property (strong) DockGroup *placesGroup;
+
+@property (strong) DockDivider *dockedDivider;
+@property (strong) DockDivider *runningDivider;
 
 // Style
 @property CGFloat iconSize;

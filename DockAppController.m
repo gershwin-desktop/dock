@@ -1,5 +1,6 @@
 #import <AppKit/AppKit.h>
 #import "DockAppController.h"
+#import "DockDivider.h"
 #import "DockGroup.h"
 #import "DockIcon.h"
 
@@ -13,6 +14,9 @@
         _isUnified = YES;
         _fileManagerAppName = @"Workspace";
         _fileManagerGroup = nil;
+        _trashGroup = nil;
+        _dockedDivider = nil;
+        _runningDivider = nil;
         _defaultIcons = [NSArray arrayWithObjects:/*@"Workspace",*/ @"Terminal", @"SystemPreferences", nil];
         _dockPosition = @"Bottom";
         
@@ -138,11 +142,12 @@
 {  
   // Create a dock window without a title bar or standard window buttons 
   CGFloat dockWidth = [self calculateDockWidth];
+  CGFloat dockHeight = 8 + self.activeLight + self.iconSize;
   // Get the main screen (primary display)
   NSScreen *mainScreen = [NSScreen mainScreen];
   NSRect viewport = [mainScreen frame];
   CGFloat x = (viewport.size.width / 2) - (dockWidth / 2);
-  NSRect frame = NSMakeRect(x, 16, dockWidth, 8 + self.activeLight + self.iconSize);  // Set size and position of the dock (x, y, w, h)
+  NSRect frame = NSMakeRect(x, 16, dockWidth, dockHeight);  // Set size and position of the dock (x, y, w, h)
 
   self.dockWindow = [[NSWindow alloc] initWithContentRect:frame
                                                 styleMask:NSWindowStyleMaskBorderless
@@ -156,21 +161,21 @@
   NSColor *semiTransparentColor = [NSColor colorWithCalibratedWhite:0.1 alpha:0.75];
   [self.dockWindow setBackgroundColor:semiTransparentColor];
 
+  // Create our DockGroups
 
-
+  // File Manager Group
   if (self.fileManagerAppName)
       {
-
         // We use our own icon
         // Get the path to the icon file from the Resources directory
-        NSString *iconImagePath = [[NSBundle mainBundle] pathForResource:@"FileManagerIcon" ofType:@"png"];
+        NSString *iconImagePath = [[NSBundle mainBundle] pathForResource:@"Home" ofType:@"png"];
 
         // Create an NSImage object from the .icns file
         NSImage *appIcon = [[NSImage alloc] initWithContentsOfFile:iconImagePath];
 
-
         self.fileManagerGroup = [[DockGroup alloc] init];  
         self.fileManagerGroup.iconSize = self.iconSize;
+        self.fileManagerGroup.dockPosition = self.dockPosition;
 
         // Permissions
         self.fileManagerGroup.acceptedType = @"Application";
@@ -185,7 +190,7 @@
         [[self.dockWindow contentView] addSubview:self.fileManagerGroup];
 
         // Fetch Docked Apps from Prefs 
-        //[self.fileManagerGroup addIcon:self.fileManagerAppName withImage:[self.workspace appIconForApp:self.fileManagerAppName]];
+        // [self.fileManagerGroup addIcon:self.fileManagerAppName withImage:[self.workspace appIconForApp:self.fileManagerAppName]];
         [self.fileManagerGroup addIcon:self.fileManagerAppName withImage:appIcon];
       }
 
@@ -193,6 +198,7 @@
       {
         self.dockedGroup = [[DockGroup alloc] init];  
         self.dockedGroup.iconSize = self.iconSize;
+        self.dockedGroup.dockPosition = self.dockPosition;
 
         // Permissions
         self.dockedGroup.acceptedType = @"Application";
@@ -208,12 +214,29 @@
 
         // Fetch Docked Apps from Prefs 
         [self loadDockedIconsFromUserDefaults];
+
+        // Divider
+        self.dockedDivider = [[DockDivider alloc] init];
+        //self.dockedDivider = [[DockDivider alloc] initWithIconSize: self.iconSize];
+        self.dockedDivider.length = dockHeight - (2 * self.padding);
+        [self.dockedDivider setNeedsDisplay:YES];
+        self.dockedDivider.dockPosition = self.dockPosition;
+        self.dockedDivider.padding = self.padding;
+        [self.dockedDivider updateFrame];
+        [self.dockedGroup setGroupName:@"Docked"];
+
+        NSRect dockedDividerFrame = [self.dockedDivider frame];
+        NSRect newDockedDividerFrame = NSMakeRect(0, self.padding, dockedDividerFrame.size.width, dockedDividerFrame.size.height);
+        [self.dockedDivider setFrame:newDockedDividerFrame];
+        [[self.dockWindow contentView] addSubview:self.dockedDivider];
+
       }
 
   if (self.showRunning)
     {
         self.runningGroup = [[DockGroup alloc] init];  
         self.runningGroup.iconSize = self.iconSize;
+        self.runningGroup.dockPosition = self.dockPosition;
 
         // Permissions
         self.runningGroup.acceptedType = @"Application";
@@ -226,9 +249,76 @@
 
         [self.runningGroup setGroupName:@"RunningGroup"];
         [[self.dockWindow contentView] addSubview:self.runningGroup];
+
+        // Divider
+        self.runningDivider = [[DockDivider alloc] init];
+        //self.runningDivider = [[DockDivider alloc] initWithIconSize: self.iconSize];
+        self.runningDivider.length = dockHeight - (2 * self.padding);
+        [self.runningDivider setNeedsDisplay:YES];
+        self.runningDivider.dockPosition = self.dockPosition;
+        self.runningDivider.padding = self.padding;
+        [self.runningDivider updateFrame];
+        [self.dockedGroup setGroupName:@"Running"];
+
+        NSRect runningDividerFrame = [self.runningDivider frame];
+        NSRect newDockedDividerFrame = NSMakeRect(0, self.padding, runningDividerFrame.size.width, runningDividerFrame.size.height);
+        [self.runningDivider setFrame:newDockedDividerFrame];
+        [[self.dockWindow contentView] addSubview:self.runningDivider];
+
     }
 
-  // TODO: Create Dividers
+  if (self.showPlaces)
+    {
+        self.placesGroup = [[DockGroup alloc] init];  
+        self.placesGroup.iconSize = self.iconSize;
+        self.placesGroup.dockPosition = self.dockPosition;
+
+        // Permissions
+        self.placesGroup.acceptedType = @"Application";
+        self.placesGroup.acceptsIcons = NO;
+        self.placesGroup.canDragReorder = NO;
+        self.placesGroup.canDragRemove = NO;
+        self.placesGroup.canDragMove = YES;
+        self.placesGroup.screenEdge = self.dockPosition;
+        self.placesGroup.controller= self;
+
+        [self.placesGroup setGroupName:@"PlacesGroup"];
+        [[self.dockWindow contentView] addSubview:self.placesGroup];
+    }
+
+  // TODO: Create Divider
+
+  // Trash Group
+  if (self)
+      {
+        // We use our own icon
+        // Get the path to the icon file from the Resources directory
+        NSString *trashImagePath = [[NSBundle mainBundle] pathForResource:@"Trash" ofType:@"png"];
+
+        // Create an NSImage object from the .icns file
+        NSImage *trashIcon = [[NSImage alloc] initWithContentsOfFile:trashImagePath];
+
+        self.trashGroup = [[DockGroup alloc] init];  
+        self.trashGroup.iconSize = self.iconSize;
+        self.trashGroup.dockPosition = self.dockPosition;
+
+        // Permissions
+        self.trashGroup.acceptedType = @"Application";
+        self.trashGroup.acceptsIcons = NO;
+        self.trashGroup.canDragReorder = NO;
+        self.trashGroup.canDragRemove = NO;
+        self.trashGroup.canDragMove = NO;
+        self.trashGroup.screenEdge = self.dockPosition;
+        self.trashGroup.controller = self;
+
+        [self.trashGroup setGroupName:@"TrashGroup"];
+        [[self.dockWindow contentView] addSubview:self.trashGroup];
+
+        // Fetch Docked Apps from Prefs 
+        // [self.trashGroup addIcon:self.fileManagerAppName withImage:[self.workspace trashIconForApp:self.fileManagerAppName]];
+        [self.trashGroup addIcon:@"Trash" withImage:trashIcon];
+      }
+
 
   // Fetch Running Apps from Workspace
   NSArray *runningApps = [self.workspace launchedApplications];
@@ -272,6 +362,7 @@
 { 
   NSLog(@"DockAppController: calculateDockWidth...");
   CGFloat totalIcons = 0;
+  CGFloat totalDividers = 0;
 
   // For the file manager
   totalIcons += 1;
@@ -279,13 +370,15 @@
   if (self.showDocked && self.dockedGroup)
   {
     totalIcons += [[self.dockedGroup listIconNames] count];
+    totalDividers += 1;
     NSLog(@"Adding Docked Icons");
   }
 
   if (self.showRunning && self.runningGroup)
   {
-    NSLog(@"Adding Running Icons");
     totalIcons += [[self.runningGroup listIconNames] count];
+    totalDividers += 1;
+    NSLog(@"Adding Running Icons");
   }
 
   if (self.showPlaces && self.placesGroup)
@@ -295,9 +388,10 @@
   }
 
   // For the Trash Can
-  // totalIcons += 1;
+  totalIcons += 1;
 
-  CGFloat dockWidth = (self.padding * 2) + (totalIcons * self.iconSize);
+
+  CGFloat dockWidth = (self.padding * 2) + (totalIcons * self.iconSize) + totalDividers * (self.padding * 2 + 1);
   return dockWidth;
 }
 
@@ -329,36 +423,52 @@
 
     // Update X for next check
     newGroupX += dockedFrame.size.width;
+
+    NSRect dockedDividerFrame = [self.dockedDivider frame];
+    NSRect newDockedDividerFrame = NSMakeRect(newGroupX, dockedDividerFrame.origin.y, dockedDividerFrame.size.width, dockedDividerFrame.size.height);
+    [self.dockedDivider setFrame:newDockedDividerFrame];
+
+    newGroupX += [self.dockedDivider frame].size.width;
   }
 
   if (self.showRunning && self.runningGroup)
   {
     NSRect runningFrame = [self.runningGroup frame];
+    NSLog(@"RUNNING COUNT: %lu, WIDTH: %f", (long)[[self.runningGroup listIconNames] count], runningFrame.size.width);
     NSRect newRunningFrame = NSMakeRect(newGroupX, runningFrame.origin.y, runningFrame.size.width, runningFrame.size.height);
     [self.runningGroup setFrame:newRunningFrame];
 
     // Update X for next check
     newGroupX += runningFrame.size.width;
+
+
+    NSRect runningDividerFrame = [self.runningDivider frame];
+    NSRect newDockedDividerFrame = NSMakeRect(newGroupX, runningDividerFrame.origin.y, runningDividerFrame.size.width, runningDividerFrame.size.height);
+    [self.runningDivider setFrame:newDockedDividerFrame];
+
+    newGroupX += [self.runningDivider frame].size.width;
   }
 
   if (self.showPlaces && self.placesGroup)
   {
     NSRect placesFrame = [self.runningGroup frame];
     placesFrame.origin.x = newGroupX;
-
+    NSLog(@"PLACES");
     // Update X for next check
     newGroupX += placesFrame.size.width;
   }
 
-  /*if (self.trashGroup)
+  if (self.trashGroup)
   {
     NSRect trashFrame = [self.trashGroup frame];
+    NSLog(@"TRASHGROUP X: %f, NEWGROUPX: %f",trashFrame.origin.x, newGroupX);
     NSRect newDockedFrame = NSMakeRect(newGroupX, trashFrame.origin.y, trashFrame.size.width, trashFrame.size.height);
     [self.trashGroup setFrame:newDockedFrame];
 
+
     // Update X for next check
-    newGroupX += trashFrame.size.width;
-  }*/
+    // newGroupX += trashFrame.size.width;
+  }
 
   // Center on screen  
   NSScreen *mainScreen = [NSScreen mainScreen];
@@ -384,6 +494,10 @@
     {
       NSString *runningAppName = [[runningApps objectAtIndex: i] objectForKey: @"NSApplicationName"];
       BOOL isDockIcon = [runningAppName isEqualToString:@"Dock"];
+      if(isDockIcon)
+        {
+          continue;
+        }
       BOOL isFileManagerIcon = [runningAppName isEqualToString:self.fileManagerAppName];
 
       BOOL isDocked = [self.dockedGroup hasIcon:runningAppName];
@@ -416,6 +530,7 @@
 }
 
 // Events
+
 // We receive DockIcon movement events directly using target-action paradigm.
 // The actual drops use notification center since they are not as time sensitive
 
@@ -427,7 +542,54 @@
     
     if ([appName isEqualToString:@"Trash"])
       {
-        // TODO Pull up Trash UI
+        NSLog(@"TRASH CLICKED");
+        // [self.workspace launchApplication:self.fileManagerAppName]; // just give it focus to begin with
+        NSString *trashDirectory = [@"~/.Trash" stringByExpandingTildeInPath];
+        NSURL *directoryURL = [NSURL fileURLWithPath:trashDirectory];
+NSArray *urls = @[directoryURL];
+
+NSString *bundleIdentifier = @"Workspace"; // Bundle identifier for GWorkspace.app
+NSDictionary *launchOptions = @{};
+NSAppleEventDescriptor *eventDescriptor = nil;
+NSArray *launchIdentifiers = nil;
+
+BOOL success = [[NSWorkspace sharedWorkspace] openURLs:urls
+                               withAppBundleIdentifier:bundleIdentifier
+                                              options:0
+                      additionalEventParamDescriptor:eventDescriptor
+                                     launchIdentifiers:&launchIdentifiers];
+
+if (success) {
+    NSLog(@"Successfully opened directory in Workspace: %@", trashDirectory);
+} else {
+    NSLog(@"Failed to open directory in Workspace: %@", trashDirectory);
+}
+
+/*      NSTask *task = [[NSTask alloc] init];
+        [task setLaunchPath:@"/System/Applications/Workspace.app/Workspace"];  // Path to GWorkspace.app
+        [task setArguments:@[trashDirectory]];  // Path to the directory or file you want to open
+    
+    @try {
+      [task launch];
+      NSLog(@"Successfully launched Workspace with path.");
+    } @catch (NSException *exception) {
+      NSLog(@"Failed to launch Workspace: %@", [exception reason]);
+    }
+*/
+
+/*NSTask *task = [[NSTask alloc] init];
+[task setLaunchPath:@"/usr/bin/wmctrl"];  // Path to wmctrl
+[task setArguments:@[@"-a", @"Workspace"]];  // Switch to GWorkspace window
+
+@try {
+    [task launch];
+    NSLog(@"Successfully switched to GWorkspace.");
+} @catch (NSException *exception) {
+    NSLog(@"Failed to switch to GWorkspace: %@", [exception reason]);
+}*/
+
+
+
       }
     
     if ([appName isEqualToString:@"Dock"])
@@ -648,7 +810,7 @@
         if (self.showDocked && isDocked)
           {
             [self.dockedGroup setIconActive:appName];
-          } else if (_showRunning && !isDocked) {
+          } else if (self.showRunning && !isDocked) {
             [self.runningGroup addIcon:appName withImage:[self.workspace appIconForApp:appName]];
             [self.runningGroup setIconActive:appName];
           }
@@ -682,7 +844,7 @@
         {
           [self.dockedGroup setIconTerminated:appName];
           NSLog(@"DockAppController: setIconTerminated %@", appName);
-        } else if (_showRunning && !isDocked) {
+        } else if (self.showRunning && !isDocked) {
           [self.runningGroup removeIcon:appName];
           NSLog(@"DockAppController: removeIcon %@", appName);
         }

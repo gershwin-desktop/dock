@@ -62,6 +62,7 @@
     return dockWidth;
 }
 
+// Updates the width of the view
 - (void) updateFrame
 {
     // Adjust the width
@@ -81,15 +82,15 @@
 {
     // If isDocked, we need to move subset of dockedIcons and all of the undockedIcons so we create a global array.
     // Otherwise we move subset of undockedIcons only.
-    for (int i = startIndex; i < [self.dockedIcons count]; i++)
-      {
+    NSLog(@"UPDATING ICON POSITIONS FOR %@ AT DOCKPOSITION %@", self.groupName, self.dockPosition);
+    for (NSUInteger i = startIndex; i < [self.dockedIcons count]; i++)
+      { 
         DockIcon *dockIcon = [self.dockedIcons objectAtIndex:i];
+        NSLog(@"TOTALICONS: %lu MOVING ICON: %@", (unsigned long)[self.dockedIcons count], [dockIcon getAppName]);
         NSRect currentFrame = [dockIcon frame];
-  
         // Horizontal adjustments
-        if([_dockPosition isEqualToString:@"Bottom"]) {
+        if([self.dockPosition isEqualToString:@"Bottom"]) {
 //          CGFloat startX = currentFrame.origin.x;
-  
           if(isExpanding){
             CGFloat expandedX = currentFrame.origin.x + _iconSize;          
             NSRect expandedFrame = NSMakeRect(expandedX, currentFrame.origin.y , self.iconSize, self.iconSize);
@@ -123,24 +124,22 @@
 - (void) removeIcon:(NSString *)appName
 {
     // TODO: Animation Logic
-    NSMutableArray *iconsArray = self.dockedIcons;
+    // NSMutableArray *iconsArray = self.dockedIcons;
     BOOL iconExists = [self hasIcon:appName];
     if (iconExists)
       { 
-        NSLog(@"Before index");
         NSUInteger index = [self indexOfIcon:appName];
-        NSLog(@"After index");
-        NSLog(@"RemoveIcon Method: Removing %@", appName);
-        DockIcon *undockedIcon = [iconsArray objectAtIndex:index];
+        NSLog(@"RemoveIcon Method: Removing %@ at INDEX: %lu", appName, (unsigned long)index);
+        DockIcon *undockedIcon = [self.dockedIcons objectAtIndex:index];
+        [self.dockedIcons removeObjectAtIndex:index];
         [undockedIcon selfDestruct];
-        [iconsArray removeObjectIdenticalTo:undockedIcon];
+        //[iconsArray removeObjectIdenticalTo:undockedIcon];
         // Update Undocked Icons
-        [self updateIconPositions:index expandDock:NO];
+        [self updateIconPositions:index expandDock:NO]; // FIXME
+        [self updateFrame];
       } else {
         NSLog(@"Error: Either not found or out of range. Could not remove %@", appName);
       }
-
-    NSLog(@"DockGroup: Finished removing %@", appName);
     // Force redraw
     [self setNeedsDisplay:YES];
 }
