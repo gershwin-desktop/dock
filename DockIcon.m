@@ -221,12 +221,31 @@ NSPoint initialDragLocation;  // Declare instance variable inside @implementatio
     [dragWindow makeKeyAndOrderFront:nil];
     NSPoint newDragLocation = [self convertPoint:[event locationInWindow] fromView:nil];
 
-    DockGroup *parentView = (DockGroup *)self.superview; // Need this because compiler thinks this references NSView
+
+    // TESTING
+    if ([self.superview isKindOfClass:[DockGroup class]]) {
+    DockGroup *parentView = (DockGroup *)self.superview;
+    NSLog(@"Parent DockGroup: %@", parentView);
+} else {
+    NSLog(@"Error: Superview is not a DockGroup");
+}
+
+    DockGroup *parentView = self.superview; // Need this because compiler thinks this references NSView
     NSString *gName = [parentView getGroupName];
+
+    NSLog(@"DOCK ICON PARENT VIEW: %@",[parentView getGroupName]);
+    // Broadcast that dragging is about to start
+    [[NSNotificationCenter defaultCenter] postNotificationName:@"DockIconIsAboutToDragNotification"
+                                                        object:self
+                                                      userInfo:@{
+                                                    @"appName": self.appName,
+                                                    @"parentGroup": [parentView getGroupName],
+                                                    @"globalX": [NSString stringWithFormat:@"%f", newDragLocation.x],
+                                                    @"globalY": [NSString stringWithFormat:@"%f", newDragLocation.y]
+                                                      }];        
 
     // Move the window as the user drags the mouse
     while ([event type] != NSEventTypeLeftMouseUp) {
-        // NSPoint newDragLocation = [event locationInWindow];
         newDragLocation = [NSEvent mouseLocation];
         NSRect windowFrame = [dragWindow frame];
         windowFrame.origin.x = newDragLocation.x - initialOffset.x;
@@ -241,7 +260,7 @@ NSPoint initialDragLocation;  // Declare instance variable inside @implementatio
                                                             object:self
                                                           userInfo:@{
                                                         @"appName": self.appName,
-                                                        @"dockGroup": [parentView getGroupName],
+                                                        @"parentGroup": [parentView getGroupName],
                                                         @"globalX": [NSString stringWithFormat:@"%f", newDragLocation.x],
                                                         @"globalY": [NSString stringWithFormat:@"%f", newDragLocation.y]
                                                           }];        
@@ -287,7 +306,6 @@ NSPoint initialDragLocation;  // Declare instance variable inside @implementatio
 - (NSDragOperation)draggingSourceOperationMaskForLocal:(BOOL)isLocal
 {
     return NSDragOperationPrivate; // Undocumented but works
-    // return NSDragOperationMove; // Does not work
 }
 
 - (BOOL)ignoreModifierKeysWhileDragging

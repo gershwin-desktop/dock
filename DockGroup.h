@@ -33,13 +33,16 @@
 
 // Helpers
 @property (strong) NSWorkspace *workspace;
+@property BOOL hoverEngaged;
+@property BOOL isSwapping;
+
 
 // Icon Management
-- (DockIcon *) generateIcon:(NSString *)appName withImage:(NSImage *)iconImage;
+- (DockIcon *) addIcon:(NSString *)appName withImage:(NSImage *)iconImage atIndex:(NSUInteger)index;
+- (void) removeIcon:(NSString *)appName;
+- (DockIcon *) generateIcon:(NSString *)appName withImage:(NSImage *)iconImage atIndex:(NSUInteger)index;
 - (NSRect) generateLocation:(NSString *)dockPosition atIndex:(CGFloat)index;
 - (NSMutableArray *) listIconNames;
-- (DockIcon *) addIcon:(NSString *)appName withImage:(NSImage *)iconImage;
-- (void) removeIcon:(NSString *)appName;
 
 // Movers & Helpers
 - (BOOL) hasIcon:(NSString *)appName;
@@ -48,9 +51,16 @@
 - (NSUInteger) indexOfIcon:(NSString *)appName;
 - (void) updateFrame;
 
+// Hover Effects
+- (void)onHover:(NSString *)appName fromOtherGroup:(BOOL)isExternal;
+- (void)startHover:(NSUInteger)index fromOtherGroup:(BOOL)isExternal;
+- (void)endHover;
+- (NSImage *)createPlaceholderImage;
+
 - (CGFloat) calculateDockWidth;
 - (DockIcon *) getIconByName:(NSString *)appName;
 - (void) updateIconPositions:(NSUInteger)startIndex expandDock:(BOOL)isExpanding;
+- (void) swapIconPositions:(NSUInteger)draggedIndex withEmptyIndex:(NSUInteger)emptyIndex;
 
 // Getters & Setters
 - (NSString *)  getGroupName;

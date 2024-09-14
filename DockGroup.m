@@ -36,6 +36,9 @@
         _canDragRemove = NO;
         _canDragMove = NO;
         _screenEdge = nil; // set by DockAppController
+
+        _hoverEngaged = NO;
+        _isSwapping = NO;
       }
     return self;
 }
@@ -67,8 +70,7 @@
 {
     // Adjust the width
     CGFloat dockWidth = [self calculateDockWidth];
-//    NSSize currentContentSize = [self frame].size;
-   
+
     NSSize newContentSize = [_direction isEqualToString:@"Horizontal"] ? NSMakeSize(dockWidth, self.iconSize) : NSMakeSize(self.iconSize, dockWidth);
     NSRect currentFrame = [self frame]; 
     NSRect newFrame = NSMakeRect(currentFrame.origin.x, 0, newContentSize.width, newContentSize.height);
@@ -77,42 +79,83 @@
     [self setNeedsDisplay:YES];
 }
 
+- (void) swapIconPositions:(NSUInteger)draggedIndex withEmptyIndex:(NSUInteger)emptyIndex
+{
+  NSLog(@"SWAP METHOD");
+  if (self.isSwapping)
+    {
+      return;
+    }
+  DockIcon *draggedIcon = [self.dockedIcons objectAtIndex:draggedIndex];
+  DockIcon *emptyIcon = [self.dockedIcons objectAtIndex:emptyIndex];
+  NSLog(@"AFTER CHECK");
+
+  self.isSwapping = YES;
+  BOOL swapHorizontal = [self.dockPosition isEqualToString:@"Bottom"];
+  if (swapHorizontal)
+    {
+      // Swap in the view
+      NSRect aFrame = [draggedIcon frame];
+      NSRect bFrame = [emptyIcon frame];
+
+      NSRect aNewFrame = NSMakeRect(bFrame.origin.x, bFrame.origin.y, aFrame.size.width, aFrame.size.height);
+      NSRect bNewFrame = NSMakeRect(aFrame.origin.x, aFrame.origin.y, aFrame.size.width, aFrame.size.height);
+
+      // TODO Animations here
+      
+      [draggedIcon setFrame:aNewFrame];
+      [emptyIcon setFrame:bNewFrame];
+      [self updateFrame];
+    }
+  // Swap in the array
+
+  id temp = [self.dockedIcons objectAtIndex:draggedIndex];
+  [self.dockedIcons replaceObjectAtIndex:draggedIndex withObject:[self.dockedIcons objectAtIndex:emptyIndex]];
+  [self.dockedIcons replaceObjectAtIndex:emptyIndex withObject:temp];
+
+  self.isSwapping = NO;
+}
+
 - (void) updateIconPositions:(NSUInteger)startIndex
                   expandDock:(BOOL)isExpanding
 {
     // If isDocked, we need to move subset of dockedIcons and all of the undockedIcons so we create a global array.
     // Otherwise we move subset of undockedIcons only.
-    NSLog(@"UPDATING ICON POSITIONS FOR %@ AT DOCKPOSITION %@", self.groupName, self.dockPosition);
+
     for (NSUInteger i = startIndex; i < [self.dockedIcons count]; i++)
       { 
         DockIcon *dockIcon = [self.dockedIcons objectAtIndex:i];
-        NSLog(@"TOTALICONS: %lu MOVING ICON: %@", (unsigned long)[self.dockedIcons count], [dockIcon getAppName]);
         NSRect currentFrame = [dockIcon frame];
         // Horizontal adjustments
         if([self.dockPosition isEqualToString:@"Bottom"]) {
-//          CGFloat startX = currentFrame.origin.x;
-          if(isExpanding){
-            CGFloat expandedX = currentFrame.origin.x + _iconSize;          
-            NSRect expandedFrame = NSMakeRect(expandedX, currentFrame.origin.y , self.iconSize, self.iconSize);
-            [dockIcon setFrame:expandedFrame]; // Replace with tween
-          } else {
-            CGFloat contractedX = currentFrame.origin.x - _iconSize;
-            NSRect contractedFrame = NSMakeRect(contractedX, currentFrame.origin.y , self.iconSize, self.iconSize);
-            [dockIcon setFrame:contractedFrame]; // Replace with tween
-          } 
+
+          if(isExpanding)
+            {
+              CGFloat expandedX = currentFrame.origin.x + self.iconSize;          
+              NSRect expandedFrame = NSMakeRect(expandedX, currentFrame.origin.y , self.iconSize, self.iconSize);
+              [dockIcon setFrame:expandedFrame]; // Replace with tween
+            } else {
+              CGFloat contractedX = currentFrame.origin.x - self.iconSize;
+              NSRect contractedFrame = NSMakeRect(contractedX, currentFrame.origin.y , self.iconSize, self.iconSize);
+              [dockIcon setFrame:contractedFrame]; // Replace with tween
+            } 
   
         }
 
       }   
 }
 
-- (DockIcon *) addIcon:(NSString *)appName
-             withImage:(NSImage *)iconImage
+- (DockIcon *) addIcon:(NSString *)appName withImage:(NSImage *)iconImage atIndex:(NSUInteger)index
 {
-    // TODO: Animation Logic
-    DockIcon *dockIcon = [self generateIcon:appName withImage:iconImage];
-    [self.dockedIcons addObject:dockIcon];
+    DockIcon *dockIcon = [self generateIcon:appName withImage:iconImage atIndex:index];
+    [self.dockedIcons insertObject:dockIcon atIndex:index];
     [self addSubview:dockIcon];
+
+    if(index < [self.dockedIcons count])
+      { 
+        [self updateIconPositions:index + 1 expandDock:YES]; 
+      }
+    
     [self updateFrame];
 
     // Force redraw
@@ -123,23 +166,24 @@
 
 - (void) removeIcon:(NSString *)appName
 {
-    // TODO: Animation Logic
-    // NSMutableArray *iconsArray = self.dockedIcons;
     BOOL iconExists = [self hasIcon:appName];
     if (iconExists)
       { 
         NSUInteger index = [self indexOfIcon:appName];
-        NSLog(@"RemoveIcon Method: Removing %@ at INDEX: %lu", appName, (unsigned long)index);
         DockIcon *undockedIcon = [self.dockedIcons objectAtIndex:index];
+        NSLog(@"appName = %@ && removing icon named: %@", appName, [undockedIcon getAppName]);
         [self.dockedIcons removeObjectAtIndex:index];
         [undockedIcon selfDestruct];
-        //[iconsArray removeObjectIdenticalTo:undockedIcon];
+
         // Update Undocked Icons
-        [self updateIconPositions:index expandDock:NO]; // FIXME
+        if(index < [self.dockedIcons count])
+        {}
+        [self updateIconPositions:index expandDock:NO]; 
         [self updateFrame];
       } else {
         NSLog(@"Error: Either not found or out of range. Could not remove %@", appName);
       }
+
     // Force redraw
     [self setNeedsDisplay:YES];
 }
@@ -178,8 +222,6 @@
       {
         return [iconsArray objectAtIndex: index];
       } else {
-        NSLog(@"getIconByName Method: index not found for %@", appName);
-        NSLog(@"getIconByName Method: iconsArray count is %lu",(unsigned long)[iconsArray count]);
         return nil;
       }
 }
@@ -216,9 +258,10 @@
 
 - (DockIcon *) generateIcon:(NSString *)appName
                   withImage:(NSImage *)iconImage
+                    atIndex:(NSUInteger)index
 {
     CGFloat iconCount = [self.dockedIcons count];
-    NSRect location = [self generateLocation:_dockPosition atIndex:iconCount]; 
+    NSRect location = [self generateLocation:_dockPosition atIndex:index]; 
     DockIcon *iconButton = [[DockIcon alloc] initWithFrame:location];
     [iconButton setIconSize:self.iconSize];
     [iconButton setIconImage:iconImage];
@@ -261,7 +304,6 @@
 
         if (!alreadyDocked)
         {
-          NSLog(@"App bundle %@ entered DockGroup %@.", appBundleName, self.groupName);
           return NSDragOperationCopy;  // Allow file drops
         }
     }
@@ -273,7 +315,6 @@
 
         if (!alreadyDocked)
         {
-          NSLog(@"DockIcon %@ entered DockGroup %@.", appName, self.groupName);
           return NSDragOperationMove;  // Allow moving the DockIcon within DockGroup
         }
     }
@@ -285,28 +326,19 @@
 - (void)draggingExited:(id<NSDraggingInfo>)sender
 {
     NSPasteboard *pasteboard = [sender draggingPasteboard];
-    if ([[pasteboard types] containsObject:NSFilenamesPboardType]) {
+    if ([[pasteboard types] containsObject:NSFilenamesPboardType])
+      {
         NSArray *draggedFilenames = [[sender draggingPasteboard] propertyListForType:NSFilenamesPboardType];
         NSString *appBundleName = [[[draggedFilenames objectAtIndex:0] lastPathComponent] stringByDeletingPathExtension];
         BOOL alreadyDocked = [self hasIcon:appBundleName];
-
-        if (alreadyDocked)
-        {
-          NSLog(@"App bundle %@ exited DockGroup %@.", appBundleName, self.groupName);
-        }
-    }
+      }
 
     // Handle DockIcon drags
-    if ([[pasteboard types] containsObject:NSStringPboardType]) {        
+    if ([[pasteboard types] containsObject:NSStringPboardType])
+      {
         NSString *appName = [pasteboard stringForType:NSStringPboardType];
         BOOL alreadyDocked = [self hasIcon:appName];
-
-        if (alreadyDocked)
-        {
-          NSLog(@"DockIcon %@ exited DockGroup %@.", appName, self.groupName);
-        }
-    }
-
+      }
 }
 
 // Called after dragging has ended, allowing you to detect if the drag was outside
@@ -320,22 +352,12 @@
         NSArray *draggedFilenames = [[sender draggingPasteboard] propertyListForType:NSFilenamesPboardType];
         NSString *appBundleName = [[[draggedFilenames objectAtIndex:0] lastPathComponent] stringByDeletingPathExtension];
         BOOL alreadyDocked = [self hasIcon:appBundleName];
-
-        if (alreadyDocked)
-        {
-          NSLog(@"App bundle %@ ended in DockGroup.", appBundleName);
-        }
     }
 
     // Handle DockIcon drags
     if ([[pasteboard types] containsObject:NSStringPboardType]) {        
         NSString *appName = [pasteboard stringForType:NSStringPboardType];
         BOOL alreadyDocked = [self hasIcon:appName];
-
-        if (alreadyDocked)
-        {
-          NSLog(@"DockIcon %@ ended in DockGroup.", appName);
-        }
     }
     
 }
@@ -345,12 +367,10 @@
     NSPasteboard *pasteboard = [sender draggingPasteboard];
     if ([[pasteboard types] containsObject:NSFilenamesPboardType])
       {
-        NSLog(@"Preparing to drop DockIcon");
         return YES;
       }
     if ([[pasteboard types] containsObject:NSStringPboardType])
       {
-        NSLog(@"Preparing to drop DockIcon");
         return YES;
       }
     return NO;
@@ -361,7 +381,6 @@
 - (BOOL)performDragOperation:(id<NSDraggingInfo>)sender
 {
     NSPasteboard *pasteboard = [sender draggingPasteboard];
-    NSLog(@"DOCKGROUP CALLBACK");
 
     // For app bundles from file manager
     if ([[pasteboard types] containsObject:NSFilenamesPboardType])
@@ -372,11 +391,9 @@
   
       if (self.acceptsIcons && [[[draggedFilenames objectAtIndex:0] pathExtension] isEqual:@"app"] && !alreadyDocked)
       {
-        NSLog(@"DOCKGROUP METHOD: App Bundle %@ dropped to Dock", appName);     
         [self.controller iconDropped:appName inGroup: self];
         return YES;
       } else {
-        NSLog(@"App Drop not allowed in this icon group");
           return NO;
       }
     }
@@ -389,5 +406,55 @@
 - (NSDragOperation)draggingUpdated:(id<NSDraggingInfo>)sender
 {
     return NSDragOperationPrivate;
+}
+
+- (NSImage *)createPlaceholderImage
+{
+  NSSize imageSize = NSMakeSize(64, 64); // 64x64 size
+
+  // Create a new NSImage with the specified size
+  NSImage *transparentImage = [[NSImage alloc] initWithSize:imageSize];
+  
+  // Lock focus on the image to begin drawing
+  [transparentImage lockFocus];
+  
+  // Set the transparent color
+  [[NSColor clearColor] set];
+  
+  // Fill the image with the transparent color
+  NSRect imageRect = NSMakeRect(0, 0, imageSize.width, imageSize.height);
+  NSRectFill(imageRect);
+  
+  // Unlock focus to complete the drawing
+  [transparentImage unlockFocus];
+  
+  return transparentImage;
+}
+
+- (void)onHover:(NSString *)appName fromOtherGroup:(BOOL)isExternal
+{
+  if (!self.canDragReorder)
+    {
+      return;
+    }
+
+  self.hoverEngaged = YES;
+}
+
+- (void)startHover:(NSUInteger)index fromOtherGroup:(BOOL)isExternal
+{
+  if (!self.canDragReorder)
+    {
+      return;
+    }
+
+  // Prep the group for hover
+  self.hoverEngaged = YES;
+}
+
+- (void)endHover
+{
+  // Clean up placeholder icon
+  self.hoverEngaged = NO;
 }
 @end

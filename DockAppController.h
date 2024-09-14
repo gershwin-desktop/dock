@@ -38,6 +38,7 @@
 
 // Icon Management
 - (void)addDivider;
+- (void)iconIsAboutToDrag:(NSNotification *)notification;
 - (void)iconIsDragging:(NSNotification *)notification;
 - (void)iconDropped:(NSString *)appName inGroup:(DockGroup *)dockGroup;
 - (void)iconAddedToGroup:(NSNotification *)notification;
@@ -52,7 +53,9 @@
 // Movers & Helpers
 - (void)checkForNewActivatedIcons;
 - (CGFloat)calculateDockWidth;
-- (BOOL)detectHover:(NSString *)appName inGroup:(DockGroup *)dockGroup currentX:(CGFloat)currentX currentY:(CGFloat)currentY;
+- (BOOL)detectGroupHover:(NSString *)appName inGroup:(DockGroup *)dockGroup currentX:(CGFloat)currentX currentY:(CGFloat)currentY;
+- (DockIcon *)detectIconHover:(NSString *)appName inGroup:(DockGroup *)dockGroup currentX:(CGFloat)currentX currentY:(CGFloat)currentY;
+- (DockGroup *)findDockGroupByName:(NSString *)groupName;
 
 // Defaults
 - (void)resetDockedIcons;
