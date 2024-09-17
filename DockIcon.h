@@ -10,6 +10,7 @@
 @property (strong) NSImage *iconImage;
 @property (strong) NSString *appName;
 @property  BOOL showLabel;
+@property (strong) NSWindow *dragWindow;
 @property  BOOL isDragging;
 @property  BOOL isDragEnabled;
 @property (strong) NSWorkspace *workspace;

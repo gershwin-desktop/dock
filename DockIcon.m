@@ -24,6 +24,7 @@ NSPoint initialDragLocation;  // Declare instance variable inside @implementatio
 
           _isDragging = NO;
           _isDragEnabled = NO;
+          _dragWindow = nil;
   
         [self setupDockIcon];
       }
@@ -201,34 +202,31 @@ NSPoint initialDragLocation;  // Declare instance variable inside @implementatio
     CGFloat scaled = self.iconSize;
     NSSize newSize = NSMakeSize(scaled, scaled);
     
+    //Avoid duplicatess
+    if (self.dragWindow)
+    {
+      self.dragWindow = nil;
+    }
     // Create a temporary window for the drag, with the size of the icon image
-    NSWindow *dragWindow = [[NSWindow alloc] initWithContentRect:NSMakeRect(dragLocation.x, dragLocation.y, newSize.width, newSize.height)
+    self.dragWindow = [[NSWindow alloc] initWithContentRect:NSMakeRect(dragLocation.x, dragLocation.y, newSize.width, newSize.height)
                                                        styleMask:NSWindowStyleMaskBorderless
                                                          backing:NSBackingStoreBuffered
                                                            defer:NO];
 
-    [dragWindow setOpaque:NO];
-    [dragWindow setBackgroundColor:[NSColor clearColor]];
+    [self.dragWindow setOpaque:NO];
+    [self.dragWindow setBackgroundColor:[NSColor clearColor]];
+    [self.dragWindow setReleasedWhenClosed:NO];
 
     // Create an NSImageView to hold the icon image with its original size
     NSImageView *imageView = [[NSImageView alloc] initWithFrame:NSMakeRect(0, 0, newSize.width, newSize.height)];
     NSImage *dragImage = [self drawImage:self.iconImage withSize:newSize];
     [imageView setImage:dragImage];
 
-    [dragWindow.contentView addSubview:imageView];
+    [self.dragWindow.contentView addSubview:imageView];
 
     // Make the window visible
-    [dragWindow makeKeyAndOrderFront:nil];
+    [self.dragWindow makeKeyAndOrderFront:nil];
     NSPoint newDragLocation = [self convertPoint:[event locationInWindow] fromView:nil];
-
-
-    // TESTING
-    if ([self.superview isKindOfClass:[DockGroup class]]) {
-    DockGroup *parentView = (DockGroup *)self.superview;
-    NSLog(@"Parent DockGroup: %@", parentView);
-} else {
-    NSLog(@"Error: Superview is not a DockGroup");
-}
 
     DockGroup *parentView = self.superview; // Need this because compiler thinks this references NSView
     NSString *gName = [parentView getGroupName];
@@ -247,10 +245,10 @@ NSPoint initialDragLocation;  // Declare instance variable inside @implementatio
     // Move the window as the user drags the mouse
     while ([event type] != NSEventTypeLeftMouseUp) {
         newDragLocation = [NSEvent mouseLocation];
-        NSRect windowFrame = [dragWindow frame];
+        NSRect windowFrame = [self.dragWindow frame];
         windowFrame.origin.x = newDragLocation.x - initialOffset.x;
         windowFrame.origin.y = newDragLocation.y - initialOffset.y;
-        [dragWindow setFrame:windowFrame display:YES];
+        [self.dragWindow setFrame:windowFrame display:YES];
 
         // Get the next event (match for left mouse dragging or mouse up)
         event = [[self window] nextEventMatchingMask:NSEventMaskFromType(NSEventTypeLeftMouseDragged) |
@@ -268,7 +266,7 @@ NSPoint initialDragLocation;  // Declare instance variable inside @implementatio
 
 
     // After the drag ends, remove the window
-    [dragWindow close];
+    [self.dragWindow close];
 
     
     _isDragging = NO;
