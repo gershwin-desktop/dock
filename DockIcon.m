@@ -32,12 +32,14 @@ NSPoint initialDragLocation;  // Declare instance variable inside @implementatio
 }
 
 - (void) setupDockIcon
-{
-    // Do Stuff
-    [super setToolTip:_appName];
-
+{    
     // Calculate the frame for the ActiveLight view
     NSRect bounds = [self bounds];
+
+    [self setTitle:@""]; // Remove NSButton label
+    [self setBordered:NO]; // No borders
+    // [self setBezelStyle:NSBezelStyleRegularSquare];
+
 
     // Calculate the x and y position to center the ActiveLight horizontally and place it at the bottom
     CGFloat xPosition = NSMidX(bounds) - (self.activeLightDiameter / 2.0);
@@ -73,8 +75,7 @@ NSPoint initialDragLocation;  // Declare instance variable inside @implementatio
 
 - (void) setAppName:(NSString *)name
 {
-    _appName = name;
-    [super setToolTip:_appName]; 
+    _appName = name; 
 }
 
 - (NSImage *) getIconImage
@@ -128,6 +129,11 @@ NSPoint initialDragLocation;  // Declare instance variable inside @implementatio
         [transform scaleXBy:1.0 yBy:-1.0];
         [transform concat];
 
+        // Explicitly draw a rectangular path without rounded corners
+        [[NSColor clearColor] setFill]; // Make sure there's no background fill
+        NSBezierPath *rectPath = [NSBezierPath bezierPathWithRect:imageRect]; // No rounded corners
+        [rectPath fill];
+
         // Draw the iconImage within the fixed 64x64 rect
         [self.iconImage drawInRect:imageRect
                           fromRect:NSZeroRect
@@ -136,6 +142,12 @@ NSPoint initialDragLocation;  // Declare instance variable inside @implementatio
 
         // Restore the previous graphics state
         [[NSGraphicsContext currentContext] restoreGraphicsState];
+
+        // Draw a custom border around the image
+        /*[[NSColor blackColor] setStroke]; // Border color
+        NSBezierPath *borderPath = [NSBezierPath bezierPathWithRect:imageRect];
+        [borderPath setLineWidth:2.0]; // Border thickness
+        [borderPath stroke];*/
     }
 }
 
@@ -298,7 +310,10 @@ NSPoint initialDragLocation;  // Declare instance variable inside @implementatio
         
       }
 
+    // Force a full redraw after dragging
     [self setNeedsDisplay:YES];
+    [self setNeedsDisplayInRect:self.bounds];
+
 }
 
 // Specify that this DockIcon supports the private drag operation
@@ -320,10 +335,12 @@ NSPoint initialDragLocation;  // Declare instance variable inside @implementatio
 
     // Lock focus on the new image to draw the original image into it
     [newImage lockFocus];
+
     [image drawInRect:NSMakeRect(0, 0, size.width, size.height)
              fromRect:NSZeroRect
             operation: NSCompositeSourceOver  // Use NSCompositeSourceOver for GNUstep
              fraction:1.0];
+
     [newImage unlockFocus];
 
     // Return the newly created image

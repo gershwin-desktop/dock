@@ -43,12 +43,6 @@
     return self;
 }
 
-- (void) dealloc
-{
-    // Remove self as an observer to avoid memory leaks
-    [[NSNotificationCenter defaultCenter] removeObserver:self]; 
-}
-
 - (NSString *) getGroupName
 {
   return _groupName;

@@ -86,12 +86,6 @@
     return self;
 }
 
-- (void) dealloc
-{
-    // Remove self as an observer to avoid memory leaks
-    [[NSNotificationCenter defaultCenter] removeObserver:self]; 
-}
-
 - (void) resetDockedIcons
 {
     NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
@@ -151,6 +145,7 @@
   [self.dockWindow setTitle:@"Dock"];
   [self.dockWindow setLevel:NSFloatingWindowLevel];
   [self.dockWindow setOpaque:NO];
+
  
   // Set the window's background color with transparency (alpha < 1.0)
   NSColor *semiTransparentColor = [NSColor colorWithCalibratedWhite:0.1 alpha:0.75];
@@ -519,28 +514,16 @@
     
     if ([appName isEqualToString:@"Trash"])
       {
-        [self resetDockedIcons];
-        [self loadDockedIconsFromUserDefaults];
-        NSString *trashDirectory = [@"~/.Trash" stringByExpandingTildeInPath];
-        NSURL *directoryURL = [NSURL fileURLWithPath:trashDirectory];
-        NSArray *urls = @[directoryURL];
 
-        NSString *bundleIdentifier = @"Workspace"; // Bundle identifier for GWorkspace.app
-        NSDictionary *launchOptions = @{};
-        NSAppleEventDescriptor *eventDescriptor = nil;
-        NSArray *launchIdentifiers = nil;
-        
-        BOOL success = [[NSWorkspace sharedWorkspace] openURLs:urls
-                                       withAppBundleIdentifier:bundleIdentifier
-                                                      options:0
-                              additionalEventParamDescriptor:eventDescriptor
-                                             launchIdentifiers:&launchIdentifiers];
+        NSString *trashDirectory = [@"~/.Trash" stringByExpandingTildeInPath];
+        BOOL success = [[NSWorkspace sharedWorkspace] openFile:trashDirectory];
         
         if (success) {
-            NSLog(@"Successfully opened directory in Workspace: %@", trashDirectory);
+            NSLog(@"Directory opened successfully.");
         } else {
-            NSLog(@"Failed to open directory in Workspace: %@", trashDirectory);
+            NSLog(@"Failed to open directory.");
         }
+
       }
     
       if ([appName isEqualToString:@"Dock"])
