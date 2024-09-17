@@ -89,7 +89,6 @@
 - (void) resetDockedIcons
 {
     NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-    // NSMutableArray *appNames = [self.dockedGroup listIconNames];
 
     [defaults setObject:self.defaultIcons forKey:@"DockedIcons"];
     [defaults synchronize]; // Optional, to save changes immediately 
@@ -113,17 +112,22 @@
 
     if (self.showDocked && [retrievedDockedIcons count] > 0)
       {
-      for (NSUInteger i = 0; i < [retrievedDockedIcons count]; i++)
-        {
-          NSString *iconName = [retrievedDockedIcons objectAtIndex:i];
-          [self.dockedGroup addIcon:[retrievedDockedIcons objectAtIndex:i] withImage:[self.workspace appIconForApp:iconName] atIndex:i];
-        }
+        for (NSUInteger i = 0; i < [retrievedDockedIcons count]; i++)
+          {
+            NSString *iconName = [retrievedDockedIcons objectAtIndex:i];
+            [self.dockedGroup addIcon:[retrievedDockedIcons objectAtIndex:i] withImage:[self.workspace appIconForApp:iconName] atIndex:i];
+          }
 
-      [self updateDockWindow];
+        // [self updateDockWindow];
       } else {
         // If NSUserDefaults are missing, reset to defaults
         [self resetDockedIcons];
-        [self updateDockWindow];
+        for (NSUInteger i = 0; i < [self.defaultIcons count]; i++)
+          {
+            NSString *iconName = [self.defaultIcons objectAtIndex:i];
+            [self.dockedGroup addIcon:[self.defaultIcons objectAtIndex:i] withImage:[self.workspace appIconForApp:iconName] atIndex:i];
+          }
+        // [self updateDockWindow];
       }
 }
 
@@ -453,11 +457,6 @@
   NSRect currentFrame = [self.dockWindow.contentView frame];
   NSRect newFrame = NSMakeRect(newX, self.padding, currentFrame.size.width, currentFrame.size.height);
   [self.dockWindow setFrame:newFrame display:YES];
-}
-
-- (void) addDivider
-{
-  // TODO
 }
 
 - (void) checkForNewActivatedIcons

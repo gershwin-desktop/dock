@@ -37,7 +37,6 @@
 - (void)updateDockWindow;
 
 // Icon Management
-- (void)addDivider;
 - (void)iconIsAboutToDrag:(NSNotification *)notification;
 - (void)iconIsDragging:(NSNotification *)notification;
 - (void)iconDropped:(NSString *)appName inGroup:(DockGroup *)dockGroup;
