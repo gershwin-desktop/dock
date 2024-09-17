@@ -374,8 +374,6 @@
   // For the Trash Can
   totalIcons += 1;
 
-  NSLog(@"THERE ARE %f LIGHTS!", totalIcons);
-
   CGFloat dockWidth = (self.padding * 2) + (totalIcons * self.iconSize) + totalDividers * (self.padding * 2 + 1);
   return dockWidth;
 }
@@ -445,7 +443,6 @@
   if (self.trashGroup)
   {
     NSRect trashFrame = [self.trashGroup frame];
-    //NSLog(@"TRASHGROUP X: %f, NEWGROUPX: %f",trashFrame.origin.x, newGroupX);
     NSRect newDockedFrame = NSMakeRect(newGroupX, trashFrame.origin.y, trashFrame.size.width, trashFrame.size.height);
     [self.trashGroup setFrame:newDockedFrame];
   }
@@ -480,7 +477,7 @@
         } else if (!isDockIcon && isDocked && self.showDocked) {
           [self.dockedGroup setIconActive:runningAppName];
         } else if (!isDocked && self.showRunning && self.runningGroup) {
-          NSLog(@"Finding undockedIcon for %@ at index %lu", runningAppName, (long)[self.runningGroup indexOfIcon:runningAppName]);
+          // TODO
         }
     }
 }
@@ -488,13 +485,12 @@
 - (BOOL) isAppRunning:(NSString *)appName
 {
   NSArray *runningApps = [self.workspace launchedApplications];
-  //NSLog(@"Is app running method...");
+
   for (int i = 0; i < [runningApps count]; i++)
     {      
       NSString *runningAppName = [[runningApps objectAtIndex: i] objectForKey: @"NSApplicationName"];
       if ([runningAppName isEqualToString:appName])
         {
-          //NSLog(@"%@ is running", runningAppName);
           return YES;
         }
     }
@@ -576,17 +572,14 @@
 // Drop source is from inside Dock app
 - (void) iconAddedToGroup:(NSNotification *)notification
 {
-    NSLog(@"CONTROLLER CALLBACK");
-
     if (!self.dropTarget)
       {
-        //NSLog(@"Drop Target is NIL");
         self.dropTarget = nil;
         return;
       } else if (!self.dropTarget.acceptsIcons)
       {
         NSString *targetName = [self.dropTarget getGroupName];
-        //NSLog(@"Drop Target %@ DOES NOT ACCEPT ICONS", targetName);
+
         self.dropTarget = nil;
         return;
       }
@@ -595,16 +588,6 @@
     NSString *appName = notification.userInfo[@"appName"];
     NSString *groupName = [self.dropTarget getGroupName];
     BOOL isRunning = [self.runningGroup hasIcon:appName];
-
-    // Avoid Duplicates
-    if ([self.dropTarget hasIcon:appName])
-    {
-      // self.dropTarget = nil;
-      //return;
-    }
-      NSLog(@"TEST");
-
-    NSLog(@"Controller: App %@ is being added to group %@", appName, groupName);
 
    
     if ([groupName isEqualToString:[self.dockedGroup getGroupName]])
@@ -644,7 +627,6 @@
     NSString *appName = notification.userInfo[@"appName"];
     NSString *groupName = notification.userInfo[@"groupName"];
     BOOL isDockedGroup = NO;
-    NSLog(@"REMOVED FROM WINDOW FROM GROUP %@", groupName);
 
     // Group the icon is being removed from
     DockGroup *dockGroup = nil;
@@ -661,9 +643,7 @@
       }
 
       if (dockGroup.canDragRemove)
-        {
-          NSLog(@"App %@ can be removed from group %@...", appName, groupName);
-          NSLog(@"REMAINING ICONS IN GRUOP %@ = %@", [dockGroup getGroupName], [dockGroup listIconNames]);
+        { 
           [dockGroup removeIcon:appName];
           [dockGroup updateFrame];
           [self updateDockWindow];
@@ -672,7 +652,6 @@
         BOOL isRunning = [self isAppRunning:appName];
         if (self.showRunning && self.runningGroup && isRunning)
           {       
-            //NSLog(@"App %@ is to be removed from the running group ...", appName);
             NSImage *appImage = [self.workspace appIconForApp:appName];
             [self.runningGroup addIcon:appName withImage:appImage
                                atIndex:[[self.runningGroup listIconNames] count]];
@@ -705,8 +684,6 @@
   
     DockGroup *fromDockGroup = [self findDockGroupByName:parentGroupName];
     self.dropTarget = fromDockGroup;
-    NSLog(@"ICON IS ABOUT TO DRAG IN GROUP %@ CONTROLLER METHOD", [self.dropTarget getGroupName]);
-    NSLog(@"FROM GROUP %@ WITH NAME %@", [fromDockGroup getGroupName], parentGroupName);
 
     DockIcon *bottomIcon = [self detectIconHover:appName
                                        inGroup:fromDockGroup
@@ -717,7 +694,6 @@
 
 - (void) iconIsDragging:(NSNotification *)notification
 {
-  //NSLog(@"ICON IS DRAGGING METHOD");
     NSString *appName = notification.userInfo[@"appName"];
     NSString *parentGroupName = notification.userInfo[@"parentGroup"];
     NSString *globalX = notification.userInfo[@"globalX"];
@@ -733,7 +709,6 @@
         if (!self.dropTarget || self.dropTarget != self.dockedGroup)
           {
             self.dropTarget = self.dockedGroup;
-            NSLog(@"DROPTARGET SET TO DOCKED GROUP");
           }
         DockIcon *bottomIcon = [self detectIconHover:appName
                                            inGroup:self.dockedGroup
@@ -744,7 +719,6 @@
         // and hide it so it looks like a gap
         if (![self.dropTarget hasIcon:appName])
           {
-            NSLog(@"ADD INVISIBLE ICON TO GROUP %@", parentGroupName);
             DockIcon *draggedIcon = [fromDockGroup getIconByName:appName];
             [self.dropTarget addIcon:appName withImage:draggedIcon.iconImage
                                 atIndex:[self.dropTarget indexOfIcon:bottomIcon.appName]];
@@ -759,7 +733,6 @@
           {
             [self.dockedGroup swapIconPositions:[self.dockedGroup indexOfIcon:[bottomIcon getAppName]]
                                 withEmptyIndex:[self.dockedGroup indexOfIcon:appName]];
-            // NSLog(@"BOTTOM ICON: %@", [bottomIcon getAppName]);
           }
         return;
       }
@@ -770,7 +743,6 @@
                                        currentY:[globalY floatValue]];
     if (isOverRunning)
       {
-        //NSLog(@"OVER RUNNING GROUP");
         self.dropTarget = self.runningGroup;
         if (![parentGroupName isEqualToString:[self.dockedGroup getGroupName]] && [self.dockedGroup hasIcon:appName])
           {
@@ -842,13 +814,11 @@
       }
 
     // TODO: STOP BOUNCE
-    NSLog(@"Stop the bounce");
 }
 
 - (void) applicationIsLaunching:(NSNotification *)notification
 {
     // TODO: ICON BOUNCE
-    //NSLog(@"Get ready to bounce"); 
 }
 
 - (void) applicationTerminated:(NSNotification *)notification
@@ -887,11 +857,6 @@
   NSPoint globalPoint = NSMakePoint(currentX, currentY);
   NSRect globalDockGroupFrame = [[dockGroup window] convertRectToScreen:[dockGroup frame]];
   isOverGroup = NSPointInRect(globalPoint, globalDockGroupFrame); 
-
-  if (isOverGroup)
-  {
-    NSLog(@"Icon %@ is over group %@", appName, [dockGroup getGroupName]);
-  }
 
   return isOverGroup;
 }

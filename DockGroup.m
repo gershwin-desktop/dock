@@ -75,15 +75,12 @@
 
 - (void) swapIconPositions:(NSUInteger)draggedIndex withEmptyIndex:(NSUInteger)emptyIndex
 {
-  NSLog(@"SWAP METHOD");
   if (self.isSwapping)
     {
       return;
     }
   DockIcon *draggedIcon = [self.dockedIcons objectAtIndex:draggedIndex];
   DockIcon *emptyIcon = [self.dockedIcons objectAtIndex:emptyIndex];
-  NSLog(@"AFTER CHECK");
-
   self.isSwapping = YES;
   BOOL swapHorizontal = [self.dockPosition isEqualToString:@"Bottom"];
   if (swapHorizontal)
@@ -165,7 +162,7 @@
       { 
         NSUInteger index = [self indexOfIcon:appName];
         DockIcon *undockedIcon = [self.dockedIcons objectAtIndex:index];
-        NSLog(@"appName = %@ && removing icon named: %@", appName, [undockedIcon getAppName]);
+
         [self.dockedIcons removeObjectAtIndex:index];
         [undockedIcon selfDestruct];
 

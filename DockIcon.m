@@ -155,16 +155,12 @@ NSPoint initialDragLocation;  // Declare instance variable inside @implementatio
 // Events
 - (void)mouseDown:(NSEvent *)event
 {
-    NSLog(@"DockIcon MouseDown EVENT");
     // Capture the initial drag location (in window coordinates)
     initialDragLocation = [event locationInWindow];
 }
 
 - (void)mouseUp:(NSEvent *)event
 {
-    NSLog(@"DockIcon MouseUp EVENT");
-
-
     // Call the target's action if set
     if (self.target && [self.target respondsToSelector:self.mouseUpAction])
       {
@@ -176,11 +172,9 @@ NSPoint initialDragLocation;  // Declare instance variable inside @implementatio
 { 
   if (!self.isDragEnabled)
     {
-      NSLog(@"Parent group does not allow movement");
+      // Parent group does not allow movement
       return;
     }
-
-    NSLog(@"DockIcon MouseDragged EVENT");
 
     _isDragging = YES;
     [self setHidden:YES];
@@ -195,11 +189,8 @@ NSPoint initialDragLocation;  // Declare instance variable inside @implementatio
     // Ensure that iconImage is set before dragging
     if (!self.iconImage)
       {
-        NSLog(@"No iconImage set for DockIcon");
         return;
       }
-
-    NSLog(@"DockIcon is Dragging...");
 
     NSPoint dragLocation = [event locationInWindow]; // relative to window
     NSPoint iconOrigin = [self frame].origin;
@@ -244,7 +235,6 @@ NSPoint initialDragLocation;  // Declare instance variable inside @implementatio
     DockGroup *parentView = self.superview; // Need this because compiler thinks this references NSView
     NSString *gName = [parentView getGroupName];
 
-    NSLog(@"DOCK ICON PARENT VIEW: %@",[parentView getGroupName]);
     // Broadcast that dragging is about to start
     [[NSNotificationCenter defaultCenter] postNotificationName:@"DockIconIsAboutToDragNotification"
                                                         object:self
@@ -287,9 +277,8 @@ NSPoint initialDragLocation;  // Declare instance variable inside @implementatio
 
     // Check if the screen point is inside this window's frame
     if (NSPointInRect(newDragLocation, [[self window] frame]))
-      {
-        NSLog(@"Inside"); 
-        // Put 
+      {        
+        // Dropped inside Dock app window
         [[NSNotificationCenter defaultCenter] postNotificationName:@"DockIconAddedToGroupNotification"
                                                             object:self
                                                           userInfo:@{
@@ -298,8 +287,7 @@ NSPoint initialDragLocation;  // Declare instance variable inside @implementatio
                                                           }];        
       } else if (!NSPointInRect(newDragLocation, [[self window] frame]) && parentView.canDragRemove)
       {
-        // NSLog(@"Outside");
-        NSLog(@"Outside of %@", gName);
+        // Dropped outside Dock app window
         [[NSNotificationCenter defaultCenter] postNotificationName:@"DockIconRemovedFromWindowNotification"
                                                             object:self
                                                           userInfo:@{
