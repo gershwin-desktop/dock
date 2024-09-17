@@ -213,6 +213,7 @@ NSPoint initialDragLocation;  // Declare instance variable inside @implementatio
                                                          backing:NSBackingStoreBuffered
                                                            defer:NO];
 
+    [self.dragWindow setTitle:@"DockDragWindow"];
     [self.dragWindow setOpaque:NO];
     [self.dragWindow setBackgroundColor:[NSColor clearColor]];
     [self.dragWindow setReleasedWhenClosed:NO];
