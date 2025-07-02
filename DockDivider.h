@@ -1,7 +1,7 @@
-#import <Foundation/Foundation.h>
 #import <AppKit/AppKit.h>
+#import <Foundation/Foundation.h>
 
-@interface DockDivider : NSView 
+@interface DockDivider : NSView
 
 // Placement
 // @property (strong) NSWindow *dockWindow;
@@ -20,11 +20,10 @@
 @property (strong) NSWorkspace *workspace;
 
 // Drawing Management
-- (void) updateFrame;
+- (void)updateFrame;
 
 // Getters & Setters
-- (NSString *)  getGroupName;
-- (void)  setGroupName:(NSString *)groupName;
+- (NSString *)getGroupName;
+- (void)setGroupName:(NSString *)groupName;
 
 @end
-

@@ -1,10 +1,10 @@
-#import <Foundation/Foundation.h>
-#import <AppKit/AppKit.h>
 #import "DockIcon.h"
+#import <AppKit/AppKit.h>
+#import <Foundation/Foundation.h>
 
-@class DockAppController;  // Forward declaration
+@class DockAppController; // Forward declaration
 
-@interface DockGroup : NSView 
+@interface DockGroup : NSView
 
 @property (nonatomic, weak) DockAppController *controller; // Required for Target-Action
 
@@ -36,20 +36,21 @@
 @property BOOL hoverEngaged;
 @property BOOL isSwapping;
 
-
 // Icon Management
-- (DockIcon *) addIcon:(NSString *)appName withImage:(NSImage *)iconImage atIndex:(NSUInteger)index;
-- (void) removeIcon:(NSString *)appName;
-- (DockIcon *) generateIcon:(NSString *)appName withImage:(NSImage *)iconImage atIndex:(NSUInteger)index;
-- (NSRect) generateLocation:(NSString *)dockPosition atIndex:(CGFloat)index;
-- (NSMutableArray *) listIconNames;
+- (DockIcon *)addIcon:(NSString *)appName withImage:(NSImage *)iconImage atIndex:(NSUInteger)index;
+- (void)removeIcon:(NSString *)appName;
+- (DockIcon *)generateIcon:(NSString *)appName
+                 withImage:(NSImage *)iconImage
+                   atIndex:(NSUInteger)index;
+- (NSRect)generateLocation:(NSString *)dockPosition atIndex:(CGFloat)index;
+- (NSMutableArray *)listIconNames;
 
 // Movers & Helpers
-- (BOOL) hasIcon:(NSString *)appName;
-- (void) setIconActive:(NSString *)appName;
-- (void) setIconTerminated:(NSString *)appName;
-- (NSUInteger) indexOfIcon:(NSString *)appName;
-- (void) updateFrame;
+- (BOOL)hasIcon:(NSString *)appName;
+- (void)setIconActive:(NSString *)appName;
+- (void)setIconTerminated:(NSString *)appName;
+- (NSUInteger)indexOfIcon:(NSString *)appName;
+- (void)updateFrame;
 
 // Hover Effects
 - (void)onHover:(NSString *)appName fromOtherGroup:(BOOL)isExternal;
@@ -57,14 +58,13 @@
 - (void)endHover;
 - (NSImage *)createPlaceholderImage;
 
-- (CGFloat) calculateDockWidth;
-- (DockIcon *) getIconByName:(NSString *)appName;
-- (void) updateIconPositions:(NSUInteger)startIndex expandDock:(BOOL)isExpanding;
-- (void) swapIconPositions:(NSUInteger)draggedIndex withEmptyIndex:(NSUInteger)emptyIndex;
+- (CGFloat)calculateDockWidth;
+- (DockIcon *)getIconByName:(NSString *)appName;
+- (void)updateIconPositions:(NSUInteger)startIndex expandDock:(BOOL)isExpanding;
+- (void)swapIconPositions:(NSUInteger)draggedIndex withEmptyIndex:(NSUInteger)emptyIndex;
 
 // Getters & Setters
-- (NSString *)  getGroupName;
-- (void)  setGroupName:(NSString *)groupName;
+- (NSString *)getGroupName;
+- (void)setGroupName:(NSString *)groupName;
 
 @end
-

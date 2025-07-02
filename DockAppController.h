@@ -1,8 +1,8 @@
-#import <Foundation/Foundation.h>
-#import <AppKit/AppKit.h>
+#import "DockDivider.h"
 #import "DockGroup.h"
 #import "DockIcon.h"
-#import "DockDivider.h"
+#import <AppKit/AppKit.h>
+#import <Foundation/Foundation.h>
 
 @interface DockAppController : NSObject <NSApplicationDelegate>
 
@@ -52,8 +52,14 @@
 // Movers & Helpers
 - (void)checkForNewActivatedIcons;
 - (CGFloat)calculateDockWidth;
-- (BOOL)detectGroupHover:(NSString *)appName inGroup:(DockGroup *)dockGroup currentX:(CGFloat)currentX currentY:(CGFloat)currentY;
-- (DockIcon *)detectIconHover:(NSString *)appName inGroup:(DockGroup *)dockGroup currentX:(CGFloat)currentX currentY:(CGFloat)currentY;
+- (BOOL)detectGroupHover:(NSString *)appName
+                 inGroup:(DockGroup *)dockGroup
+                currentX:(CGFloat)currentX
+                currentY:(CGFloat)currentY;
+- (DockIcon *)detectIconHover:(NSString *)appName
+                      inGroup:(DockGroup *)dockGroup
+                     currentX:(CGFloat)currentX
+                     currentY:(CGFloat)currentY;
 - (DockGroup *)findDockGroupByName:(NSString *)groupName;
 
 // Defaults
@@ -65,4 +71,3 @@
 - (void)iconMouseUp:(id)sender;
 
 @end
-
