@@ -1,0 +1,9 @@
+CompileFlags:
+  Add: [
+    -x, objective-c,
+    -fblocks,
+    -I/System/Library/Headers,
+    -I/usr/local/include,
+    -F/System/Library/Frameworks,
+    -F/Local/Library/Frameworks
+  ]
