@@ -1,0 +1,49 @@
+# Apple-style Objective-C clang-tidy configuration
+
+Checks: >
+  -*,
+  clang-analyzer-*,
+  bugprone-*,
+  readability-*,
+  objc-*,
+  modernize-deprecated-headers,
+  modernize-use-default-member-init
+
+WarningsAsErrors: ''
+
+HeaderFilterRegex: '.*'
+FormatStyle: file
+
+CheckOptions:
+  # Naming conventions (Objective-C / Apple style)
+  - key: readability-identifier-naming.ClassCase
+    value: CamelCase
+  - key: readability-identifier-naming.StructCase
+    value: CamelCase
+  - key: readability-identifier-naming.FunctionCase
+    value: camelBack
+  - key: readability-identifier-naming.MethodCase
+    value: camelBack
+  - key: readability-identifier-naming.VariableCase
+    value: camelBack
+  - key: readability-identifier-naming.PrivateMemberPrefix
+    value: _
+  - key: readability-identifier-naming.ConstantCase
+    value: CamelCase
+  - key: readability-identifier-naming.MacroDefinitionCase
+    value: UPPER_CASE
+  - key: readability-identifier-naming.NamespaceCase
+    value: CamelCase
+
+  # Disable trailing return type checks (not used in Apple code)
+  - key: modernize-use-trailing-return-type.IgnoreMacros
+    value: '1'
+
+  # Avoid pushing auto aggressively (Apple prefers explicit types)
+  - key: modernize-use-auto.MinTypeNameLength
+    value: '5'
+
+  # Function size threshold for readability (optional)
+  - key: readability-function-size.LineThreshold
+    value: '100'
+

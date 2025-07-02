@@ -1,0 +1,42 @@
+# Apple-style Objective-C clang-format configuration
+
+BasedOnStyle: LLVM
+
+# Indentation
+IndentWidth: 2
+TabWidth: 2
+UseTab: Never
+IndentCaseLabels: true
+
+# Braces
+# BreakBeforeBraces: Allman
+BreakBeforeBraces: Stroustrup
+AllowShortFunctionsOnASingleLine: Inline
+AlwaysBreakBeforeMultilineStrings: false
+
+# Line length
+ColumnLimit: 100
+
+# Spacing
+SpaceBeforeParens: ControlStatements
+SpacesBeforeTrailingComments: 1
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
+SpaceInEmptyParentheses: false
+Cpp11BracedListStyle: false
+
+# Objective-C specifics
+ObjCSpaceAfterProperty: true
+ObjCSpaceBeforeProtocolList: true
+
+# Includes
+SortIncludes: true
+IncludeBlocks: Preserve
+IncludeCategories:
+  - Regex:           '^<.*\.h>'
+    Priority:        1
+    SortPriority:    0
+  - Regex:           '^".*\.h"'
+    Priority:        2
+    SortPriority:    1
+
